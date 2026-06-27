@@ -13,10 +13,9 @@ enum Role {
 }
 
 enum SubmissionStatus {
-  PENDING
-  GRADING
+  SUBMITTED
   GRADED
-  FAILED
+  RESUBMITTED
 }
 
 model User {
@@ -34,6 +33,7 @@ model User {
   sessions    Session[]
   submissions Submission[]
   progress    Progress[]
+  createdAssignments Assignment[]
 }
 
 model Account {
@@ -94,21 +94,36 @@ model Assignment {
   instructions String  @db.Text
   tutorialId  String?
   dueDate     DateTime?
+  maxMarks    Int
+  allowResubmission Boolean @default(true)
+  attachments String[] @default([])
   published   Boolean  @default(false)
+  createdById String
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   tutorial    Tutorial?    @relation(fields: [tutorialId], references: [id])
+  createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
   submissions Submission[]
+
+  @@index([dueDate])
+  @@index([deletedAt])
 }
 
 model Submission {
   id            String           @id @default(cuid())
   userId        String
   assignmentId  String
-  repoUrl       String
+  version       Int              @default(1)
+  repoUrl       String?
+  deploymentUrl String?
   branch        String           @default("main")
-  status        SubmissionStatus @default(PENDING)
+  fileUrls      String[]         @default([])
+  comments      String?          @db.Text
+  status        SubmissionStatus @default(SUBMITTED)
+  isGradePublished Boolean       @default(false)
+  deletedAt     DateTime?
   submittedAt   DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -118,8 +133,13 @@ model Submission {
   totalScore         Float?
   feedback           String? @db.Text
 
-  user       User       @relation(fields: [userId], references: [id])
-  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  user       User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assignmentId, version])
+  @@index([assignmentId, userId])
+  @@index([status])
+  @@index([deletedAt])
 }
 
 model Progress {
