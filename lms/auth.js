@@ -27,6 +27,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return token
     },
+    ///asdgdfgadgfa
     session({ session, token }) {
     console.log("SESSION CALLBACK — session:", session, "token:", token)
       if (token) {
