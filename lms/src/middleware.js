@@ -8,16 +8,16 @@ export async function middleware(req) {
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET,
-    salt: process.env.NODE_ENV === "production"
-      ? "__Secure-authjs.session-token"
-      : "authjs.session-token",
   })
+
+  console.log("MIDDLEWARE — pathname:", req.nextUrl.pathname, "token:", token)
 
   const { pathname } = req.nextUrl
   const isAdminRoute = pathname.startsWith(ADMIN_PREFIX)
   const isStudentRoute = pathname.startsWith(STUDENT_PREFIX)
 
   if (!token) {
+    console.log("MIDDLEWARE — no token, redirecting to login")
     const loginUrl = new URL("/login", req.url)
     loginUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(loginUrl)
