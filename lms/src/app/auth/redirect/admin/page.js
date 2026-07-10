@@ -9,7 +9,7 @@ export default async function AdminRedirectPage(){
     }
 
     const role = session.user.role
-    const isAdminOrOwner = role === "ADMIN" || "OWNER"
+    const isAdminOrOwner = (role === "ADMIN" || role ==="OWNER")
 
     if(!isAdminOrOwner){
         redirect("/login?error=not_admin")

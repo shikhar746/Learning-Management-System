@@ -15,7 +15,7 @@ const adminLinks = [
 
 export default function Sidebar({ role, user }) {
   const pathname = usePathname()
-  const links = role === "admin" ? adminLinks : studentLinks
+  const links = role === "student" ? studentLinks:adminLinks 
 
   return (
     <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">

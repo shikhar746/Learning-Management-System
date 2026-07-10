@@ -21,6 +21,11 @@ export default function LoginPage() {
             This account isn't registered as an admin.
             </div>)
         }
+        {error === "try_again" && (
+          <div className="bg-yellow-50 text-yellow-700 text-sm px-4 py-3 rounded-lg mb-6">
+            There was a problem in setting up the connection
+            </div>)
+        }
         <div className = "space-y-3">
           <Button
             className = "w-full flex items-center gap-3"
