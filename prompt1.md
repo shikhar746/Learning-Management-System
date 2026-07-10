@@ -1,4 +1,3 @@
-You are joining an existing project. Everything below is the CURRENT STATE of the repository. Treat this as the source of truth.
 
 # Project
 
