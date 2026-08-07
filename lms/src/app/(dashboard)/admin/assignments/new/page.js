@@ -1,17 +1,16 @@
-import CreateAssignmentForm from "@/components/dashboard/CreateAssignmentForm"
+import AssignmentForm from "@/components/dashboard/AssignmentForm"
 
 export default function NewAssignmentPage() {
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Create Assignment
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Fill in the details to publish a new Assignment
+    <div className="space-y-6 max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Create New Assignment</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Publish instructions, upload starter files, and configure submission deadlines.
         </p>
       </div>
-      <CreateAssignmentForm />
+
+      <AssignmentForm />
     </div>
   )
 }

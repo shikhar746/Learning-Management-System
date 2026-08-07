@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🎓 LMS Web Application
 
-## Getting Started
+This is the Next.js 16 core web application for the **AI-Assisted Learning Management System (LMS)**.
 
-First, run the development server:
+## 🚀 Quick Start
 
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment
+Create `.env.local` in `lms/`:
+```env
+DATABASE_URL="postgresql://neondb_owner:npg_VgXx6uKwLE2c@ep-withered-silence-apm7a6lr-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+AUTH_SECRET="uI3S/dmhfeO1aHReCFWCAb0t99BycRTRl13+cVcx65I="
+AUTH_URL="http://localhost:3000"
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+AUTH_GOOGLE_ID="539179044033-3gcrafaoeri03s30t4o4fdht9gs5gpjk.apps.googleusercontent.com"
+AUTH_GOOGLE_SECRET="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"
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="dxeuly7xo"
+CLOUDINARY_API_KEY="876595632698537"
+CLOUDINARY_API_SECRET="7NQndmOVJgl4rwW5LQnX1q-t4pY"
+CLOUDINARY_URL="cloudinary://876595632698537:7NQndmOVJgl4rwW5LQnX1q-t4pY@dxeuly7xo"
+```
 
-## Learn More
+### 3. Generate Prisma Client & Run Migrations
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Run Development Server
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 📡 API Endpoints Reference
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Method | Route | Access | Purpose |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Public | Register new user with hashed password |
+| `POST` | `/api/upload` | Authenticated | Upload file to Cloudinary (PDF, DOCX, ZIP, PNG - max 10MB) |
+| `GET` / `POST` | `/api/assignments` | Admin / Student | Fetch assignments list or create new assignment |
+| `GET` / `PUT` / `DELETE` | `/api/assignments/[id]` | Admin / Student | Fetch detail, update parameters, or delete assignment |
+| `GET` / `POST` | `/api/submissions` | Student / Admin | Create assignment submission (versioned) or list submissions |
+| `GET` | `/api/admin/submissions/[id]` | Admin/Owner | View submission details for evaluation |
+| `PUT` | `/api/admin/submissions/[id]/grade` | Admin/Owner | Evaluate submission, assign marks/feedback, & publish score |
+| `GET` | `/api/analytics` | Authenticated | Aggregated metrics for Admin & Student dashboards |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For full project specs and architecture details, see the root [`Readme.md`](file:///c:/Users/vansh/OneDrive/Desktop/vsCode/Learning%20Management%20System/Readme.md).

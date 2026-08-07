@@ -23,16 +23,17 @@ model User {
   name           String?
   email          String   @unique
   emailVerified  DateTime?
+  password       String?
   image          String?
   role           Role     @default(STUDENT)
   githubUsername String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  accounts    Account[]
-  sessions    Session[]
-  submissions Submission[]
-  progress    Progress[]
+  accounts           Account[]
+  sessions           Session[]
+  submissions        Submission[]
+  progress           Progress[]
   createdAssignments Assignment[]
 }
 
