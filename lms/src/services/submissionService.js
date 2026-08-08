@@ -1,6 +1,7 @@
 import { db } from "@/lib/db"
 import { evaluateSubmissionWithByok } from "@/services/aiGradingService"
 import { sendGradeNotification } from "@/services/notificationService"
+import { invalidateCachePattern } from "@/lib/redis"
 
 export async function createSubmission(data, userId) {
   const { assignmentId, repoUrl, deploymentUrl, driveUrl, branch, fileUrls, comments } = data
@@ -52,6 +53,9 @@ export async function createSubmission(data, userId) {
       },
     },
   })
+
+  // Invalidate cached analytics upon new submission
+  invalidateCachePattern("analytics:")
 
   return submission
 }
@@ -123,6 +127,9 @@ export async function gradeSubmission(submissionId, gradeData) {
       assignment: { select: { title: true, maxMarks: true } },
     },
   })
+
+  // Invalidate cached analytics upon grading
+  invalidateCachePattern("analytics:")
 
   if (Boolean(isGradePublished) && updatedSubmission.user?.email) {
     sendGradeNotification(updatedSubmission, updatedSubmission.user.email).catch((err) =>
