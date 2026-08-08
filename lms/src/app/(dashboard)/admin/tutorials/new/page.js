@@ -1,4 +1,4 @@
-import CreateTutorialForm from "@/components/dashboard/CreateTutorialForm"
+import CreateTutorialForm from "@/components/admin/CreateTutorialForm"
 
 export default function NewTutorialPage() {
   return (

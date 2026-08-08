@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, use } from "react"
-import AssignmentForm from "@/components/dashboard/AssignmentForm"
+import AssignmentForm from "@/components/admin/AssignmentForm"
 import { Loader2 } from "lucide-react"
 
 export default function EditAssignmentPage({ params }) {

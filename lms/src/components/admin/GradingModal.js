@@ -71,7 +71,6 @@ export default function GradingModal({ submission, assignment, onGraded }) {
         </span>
       </div>
 
-      {/* Submission Links & Attachments */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2 text-xs">
         <h4 className="font-semibold text-gray-700 uppercase tracking-wider mb-2">Student Artifacts</h4>
         {submission.repoUrl && (
@@ -144,7 +143,6 @@ export default function GradingModal({ submission, assignment, onGraded }) {
           />
         </div>
 
-        {/* Extension / Placeholder metrics hooks */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
           <div className="space-y-1.5">
             <Label htmlFor="funcScore" className="text-xs flex items-center gap-1 text-gray-600">

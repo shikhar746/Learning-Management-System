@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, use } from "react"
-import SubmissionModal from "@/components/dashboard/SubmissionModal"
+import SubmissionModal from "@/components/student/SubmissionModal"
 import { Loader2, ArrowLeft, Calendar, Award, FileText } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"

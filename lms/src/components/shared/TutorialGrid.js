@@ -1,11 +1,10 @@
-import TutorialCard from "./TutorialCard"
+import TutorialCard from "@/components/shared/TutorialCard"
 
 export default function TutorialGrid({ tutorials }) {
-  if (tutorials.length === 0) {
+  if (!tutorials || tutorials.length === 0) {
     return (
-      <div className="text-center py-16">
-        <p className="text-gray-400 text-lg">No tutorials available yet.</p>
-        <p className="text-gray-400 text-sm mt-1">Check back soon!</p>
+      <div className="text-center py-16 text-gray-400">
+        No tutorials available yet.
       </div>
     )
   }

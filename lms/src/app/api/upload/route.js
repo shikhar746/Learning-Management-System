@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { v2 as cloudinary } from "cloudinary"
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth"
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,

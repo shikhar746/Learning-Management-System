@@ -1,44 +1,17 @@
 import { NextResponse } from "next/server"
-import { z } from "zod"
-import { db } from "@/lib/db"
-import { auth } from "@/auth"
+import { createAssignmentSchema } from "@/lib/validations/assignment"
+import { getAssignments, createAssignment } from "@/services/assignmentService"
+import { auth } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
-const assignmentSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  description: z.string().min(5, "Description must be at least 5 characters"),
-  instructions: z.string().min(10, "Instructions must be at least 10 characters"),
-  dueDate: z.string().optional().nullable(),
-  maxMarks: z.number().min(1, "Max marks must be greater than 0"),
-  allowResubmission: z.boolean().optional().default(true),
-  attachments: z.array(z.string()).optional().default([]),
-  published: z.boolean().optional().default(false),
-})
-
-export async function GET(req) {
+export async function GET() {
   try {
     const session = await auth()
     const isAdminOrOwner =
       session?.user?.role === "ADMIN" || session?.user?.role === "OWNER"
 
-    const whereClause = isAdminOrOwner
-      ? { deletedAt: null }
-      : { published: true, deletedAt: null }
-
-    const assignments = await db.assignment.findMany({
-      where: whereClause,
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true },
-        },
-        _count: {
-          select: { submissions: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    })
-
+    const assignments = await getAssignments(isAdminOrOwner)
     return NextResponse.json(assignments)
   } catch (error) {
     console.error("Fetch assignments error:", error)
@@ -61,7 +34,7 @@ export async function POST(req) {
     }
 
     const body = await req.json()
-    const result = assignmentSchema.safeParse(body)
+    const result = createAssignmentSchema.safeParse(body)
 
     if (!result.success) {
       return NextResponse.json(
@@ -70,31 +43,7 @@ export async function POST(req) {
       )
     }
 
-    const {
-      title,
-      description,
-      instructions,
-      dueDate,
-      maxMarks,
-      allowResubmission,
-      attachments,
-      published,
-    } = result.data
-
-    const assignment = await db.assignment.create({
-      data: {
-        title,
-        description,
-        instructions,
-        maxMarks,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        allowResubmission: allowResubmission ?? true,
-        attachments: attachments ?? [],
-        published: published ?? false,
-        createdById: session.user.id,
-      },
-    })
-
+    const assignment = await createAssignment(result.data, session.user.id)
     return NextResponse.json(assignment, { status: 201 })
   } catch (error) {
     console.error("Create assignment error:", error)

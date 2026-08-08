@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { auth } from "@/auth"
+import { getSubmissionById } from "@/services/submissionService"
+import { auth } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
@@ -17,17 +17,7 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const submission = await db.submission.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, image: true, githubUsername: true },
-        },
-        assignment: {
-          select: { id: true, title: true, description: true, instructions: true, maxMarks: true },
-        },
-      },
-    })
+    const submission = await getSubmissionById(id)
 
     if (!submission || submission.deletedAt) {
       return NextResponse.json({ error: "Submission not found" }, { status: 404 })

@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 
 export default async function Home() {
@@ -9,9 +9,9 @@ export default async function Home() {
   if (session) {
     const role = session.user.role
     if (role === "ADMIN" || role === "OWNER") {
-      redirect("/admin/tutorials")
+      redirect("/admin")
     } else {
-      redirect("/student/tutorials")
+      redirect("/student")
     }
   }
 

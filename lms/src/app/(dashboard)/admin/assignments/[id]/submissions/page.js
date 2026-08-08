@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, use } from "react"
-import GradingModal from "@/components/dashboard/GradingModal"
+import GradingModal from "@/components/admin/GradingModal"
 import { Loader2, ArrowLeft, Award, FileText, CheckCircle2, Clock } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"

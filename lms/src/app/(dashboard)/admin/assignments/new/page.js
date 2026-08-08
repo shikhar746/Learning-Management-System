@@ -1,4 +1,4 @@
-import AssignmentForm from "@/components/dashboard/AssignmentForm"
+import AssignmentForm from "@/components/admin/AssignmentForm"
 
 export default function NewAssignmentPage() {
   return (

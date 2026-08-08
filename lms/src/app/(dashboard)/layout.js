@@ -1,6 +1,6 @@
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import Sidebar from "@/components/dashboard/Sidebar"
+import Sidebar from "@/components/shared/Sidebar"
 
 export default async function DashboardLayout({ children }) {
   const session = await auth()

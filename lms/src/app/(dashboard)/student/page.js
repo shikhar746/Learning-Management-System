@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import AnalyticsCards from "@/components/dashboard/AnalyticsCards"
+import AnalyticsCards from "@/components/shared/AnalyticsCards"
 import { Calendar, FileText, Loader2, ArrowRight } from "lucide-react"
 import Link from "next/link"
 

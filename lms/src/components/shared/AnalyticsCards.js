@@ -1,6 +1,6 @@
 "use client"
 
-import { Users, FileText, CheckCircle, Clock, TrendingUp } from "lucide-react"
+import { Users, FileText, Clock, TrendingUp } from "lucide-react"
 
 export default function AnalyticsCards({ data, role = "admin" }) {
   if (!data) return null
@@ -8,7 +8,6 @@ export default function AnalyticsCards({ data, role = "admin" }) {
   if (role === "admin") {
     return (
       <div className="space-y-6">
-        {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between">
@@ -51,7 +50,6 @@ export default function AnalyticsCards({ data, role = "admin" }) {
           </div>
         </div>
 
-        {/* Class Averages Section */}
         {data.classAverages?.length > 0 && (
           <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
             <h3 className="text-base font-semibold text-gray-900">Class Average Score per Assignment</h3>
@@ -82,7 +80,6 @@ export default function AnalyticsCards({ data, role = "admin" }) {
     )
   }
 
-  // Student Summary
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">

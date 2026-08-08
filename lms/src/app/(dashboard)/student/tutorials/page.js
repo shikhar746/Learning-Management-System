@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
-import { auth } from "@/auth"
-import TutorialGrid from "@/components/dashboard/TutorialGrid"
+import { auth } from "@/lib/auth"
+import TutorialGrid from "@/components/shared/TutorialGrid"
 
 export default async function TutorialsPage() {
   const session = await auth()

@@ -1,18 +1,9 @@
 import { NextResponse } from "next/server"
-import { z } from "zod"
-import { db } from "@/lib/db"
-import { auth } from "@/auth"
+import { gradeSubmissionSchema } from "@/lib/validations/submission"
+import { gradeSubmission } from "@/services/submissionService"
+import { auth } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
-
-const gradeSchema = z.object({
-  functionalityScore: z.number().min(0).optional().nullable(),
-  qualityScore: z.number().min(0).max(100).optional().nullable(),
-  aiDetectionScore: z.number().min(0).max(100).optional().nullable(),
-  totalScore: z.number().min(0, "Total score cannot be negative"),
-  feedback: z.string().optional().nullable(),
-  isGradePublished: z.boolean().optional().default(true),
-})
 
 export async function PUT(req, { params }) {
   try {
@@ -28,7 +19,7 @@ export async function PUT(req, { params }) {
     }
 
     const body = await req.json()
-    const result = gradeSchema.safeParse(body)
+    const result = gradeSubmissionSchema.safeParse(body)
 
     if (!result.success) {
       return NextResponse.json(
@@ -37,28 +28,7 @@ export async function PUT(req, { params }) {
       )
     }
 
-    const {
-      functionalityScore,
-      qualityScore,
-      aiDetectionScore,
-      totalScore,
-      feedback,
-      isGradePublished,
-    } = result.data
-
-    const updatedSubmission = await db.submission.update({
-      where: { id },
-      data: {
-        functionalityScore: functionalityScore ?? null,
-        qualityScore: qualityScore ?? null,
-        aiDetectionScore: aiDetectionScore ?? null,
-        totalScore,
-        feedback: feedback ?? null,
-        status: "GRADED",
-        isGradePublished: isGradePublished ?? true,
-      },
-    })
-
+    const updatedSubmission = await gradeSubmission(id, result.data)
     return NextResponse.json(updatedSubmission)
   } catch (error) {
     console.error("Grade submission error:", error)
