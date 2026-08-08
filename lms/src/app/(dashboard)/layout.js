@@ -9,20 +9,19 @@ export default async function DashboardLayout({ children }) {
     redirect("/login")
   }
 
-const roleMap = {
-  STUDENT: "student",
-  ADMIN: "admin"
-};
+  const roleMap = {
+    STUDENT: "student",
+    ADMIN: "admin",
+  }
 
-// Get the role, defaulting to "owner" if not found in the map
-const role = roleMap[session?.user?.role] || "owner";    // session.user.role === "ADMIN" || session.user.role === "OWNER"
-    //   ? "admin"
-    //   : "student"
+  const role = roleMap[session?.user?.role] || "owner"
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
       <Sidebar role={role} user={session.user} />
-      <main className="flex-1 p-8 overflow-auto">{children}</main>
+      <main className="flex-1 p-8 overflow-y-auto min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+        {children}
+      </main>
     </div>
   )
 }

@@ -26,7 +26,7 @@ export default function Sidebar({ role, user }) {
   const links = role === "admin" ? adminLinks : studentLinks
 
   return (
-    <aside className="w-64 min-h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-colors">
+    <aside className="w-64 h-screen sticky top-0 shrink-0 overflow-hidden bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-colors select-none">
       <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">LMS Platform</h2>
@@ -34,7 +34,7 @@ export default function Sidebar({ role, user }) {
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {links.map((link) => {
           const isActive = pathname === link.href || (link.href !== "/admin" && link.href !== "/student" && pathname.startsWith(link.href))
           return (
@@ -54,7 +54,7 @@ export default function Sidebar({ role, user }) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-3 shrink-0">
         <div className="px-1">
           <ThemeToggle />
         </div>
