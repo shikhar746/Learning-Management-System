@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react"
 import GradingModal from "@/components/admin/GradingModal"
-import { Loader2, ArrowLeft, Award, FileText, CheckCircle2, Clock } from "lucide-react"
+import { Loader2, ArrowLeft, Award, FileText, CheckCircle2, Clock, Sparkles, Send, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -12,6 +12,8 @@ export default function AdminSubmissionsPage({ params }) {
   const [submissions, setSubmissions] = useState([])
   const [selectedSubmission, setSelectedSubmission] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [batchLoading, setBatchLoading] = useState(false)
+  const [batchMsg, setBatchMsg] = useState({ error: "", success: "" })
 
   const fetchData = async () => {
     try {
@@ -36,6 +38,32 @@ export default function AdminSubmissionsPage({ params }) {
     fetchData()
   }, [id])
 
+  const handleBatchAction = async (action) => {
+    setBatchLoading(true)
+    setBatchMsg({ error: "", success: "" })
+
+    try {
+      const res = await fetch("/api/admin/submissions/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId: id, action }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Batch action failed")
+      }
+
+      setBatchMsg({ success: data.message, error: "" })
+      fetchData()
+    } catch (err) {
+      setBatchMsg({ error: err.message, success: "" })
+    } finally {
+      setBatchLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20 text-gray-500">
@@ -47,14 +75,53 @@ export default function AdminSubmissionsPage({ params }) {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <div className="flex items-center gap-3">
-        <Link href="/admin/assignments">
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Assignments
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/admin/assignments">
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Assignments
+            </Button>
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => handleBatchAction("AI_DRAFT_ALL")}
+            disabled={batchLoading || submissions.length === 0}
+            variant="outline"
+            size="sm"
+            className="border-purple-300 text-purple-800 hover:bg-purple-50 flex items-center gap-1.5 text-xs font-semibold"
+          >
+            {batchLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-purple-600" />}
+            Batch AI Draft All
           </Button>
-        </Link>
+
+          <Button
+            onClick={() => handleBatchAction("PUBLISH_ALL")}
+            disabled={batchLoading || submissions.length === 0}
+            size="sm"
+            className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1.5 text-xs font-semibold"
+          >
+            {batchLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            Bulk Publish All Grades
+          </Button>
+        </div>
       </div>
+
+      {batchMsg.error && (
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{batchMsg.error}</span>
+        </div>
+      )}
+
+      {batchMsg.success && (
+        <div className="bg-green-50 text-green-800 p-3 rounded-lg text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+          <span>{batchMsg.success}</span>
+        </div>
+      )}
 
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex items-center justify-between">
         <div>
@@ -87,8 +154,11 @@ export default function AdminSubmissionsPage({ params }) {
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200 bg-gray-50/50">
+          <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700">Submissions Queue</h3>
+            <span className="text-xs text-gray-400 font-medium">
+              {submissions.filter((s) => s.isGradePublished).length} / {submissions.length} Published
+            </span>
           </div>
 
           {submissions.length === 0 ? (
@@ -112,6 +182,11 @@ export default function AdminSubmissionsPage({ params }) {
                       </h4>
                       <p className="text-xs text-gray-500 mt-0.5">
                         Submitted: {new Date(sub.submittedAt).toLocaleString()} • Version v{sub.version}
+                        {sub.aiSuggestedScore !== null && !sub.isGradePublished && (
+                          <span className="ml-2 text-purple-700 font-semibold bg-purple-50 px-1.5 py-0.5 rounded text-[10px]">
+                            AI Draft: {sub.aiSuggestedScore} pts
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
