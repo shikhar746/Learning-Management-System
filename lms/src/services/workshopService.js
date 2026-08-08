@@ -68,39 +68,54 @@ export async function getWorkshopsForUser(userId, userRole) {
     })
 
     return workshops.map((w) => {
-      const adminCount = w.userRoles.filter((r) => r.role === "ADMIN" || r.role === "OWNER").length
-      const studentCount = w.userRoles.filter((r) => r.role === "STUDENT").length
+      const adminCount = w.userRoles?.filter((r) => r.role === "ADMIN" || r.role === "OWNER").length || 0
+      const studentCount = w.userRoles?.filter((r) => r.role === "STUDENT").length || 0
       return {
         ...w,
         adminCount,
         studentCount,
-        assignmentCount: w._count.assignments,
+        assignmentCount: w._count?.assignments || 0,
       }
     })
   }
 
-  // Regular user (Admin or Student): fetch workshops they are explicitly enrolled in or created
-  const userRoles = await db.userRole.findMany({
-    where: { userId },
+  // Regular Admin / Student: fetch workshops created by them OR assigned in userRoles
+  const workshops = await db.workshop.findMany({
+    where: {
+      OR: [
+        { createdById: userId },
+        { userRoles: { some: { userId } } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
     include: {
-      workshop: {
+      _count: {
+        select: {
+          userRoles: true,
+          assignments: true,
+        },
+      },
+      userRoles: {
         include: {
-          _count: {
-            select: {
-              assignments: true,
-            },
-          },
+          user: { select: { id: true, name: true, email: true } },
         },
       },
     },
-    orderBy: { joinedAt: "desc" },
   })
 
-  return userRoles.map((ur) => ({
-    ...ur.workshop,
-    roleInWorkshop: ur.role,
-    assignmentCount: ur.workshop._count.assignments,
-  }))
+  return workshops.map((w) => {
+    const adminRoles = w.userRoles?.filter((r) => r.role === "ADMIN" || r.role === "OWNER") || []
+    const studentRoles = w.userRoles?.filter((r) => r.role === "STUDENT") || []
+    const currentUserRole = w.userRoles?.find((r) => r.userId === userId)?.role || (w.createdById === userId ? "ADMIN" : "STUDENT")
+
+    return {
+      ...w,
+      roleInWorkshop: currentUserRole,
+      adminCount: adminRoles.length,
+      studentCount: studentRoles.length,
+      assignmentCount: w._count?.assignments || 0,
+    }
+  })
 }
 
 export async function getWorkshopById(workshopId, userId) {
@@ -125,9 +140,9 @@ export async function getWorkshopById(workshopId, userId) {
 
   if (!workshop) return null
 
-  const adminRoles = workshop.userRoles.filter((r) => r.role === "ADMIN" || r.role === "OWNER")
-  const studentRoles = workshop.userRoles.filter((r) => r.role === "STUDENT")
-  const currentUserRole = workshop.userRoles.find((r) => r.userId === userId)?.role
+  const adminRoles = workshop.userRoles?.filter((r) => r.role === "ADMIN" || r.role === "OWNER") || []
+  const studentRoles = workshop.userRoles?.filter((r) => r.role === "STUDENT") || []
+  const currentUserRole = workshop.userRoles?.find((r) => r.userId === userId)?.role || (workshop.createdById === userId ? "ADMIN" : null)
 
   return {
     ...workshop,
