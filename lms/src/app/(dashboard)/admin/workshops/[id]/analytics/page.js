@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Trophy, Award, ArrowLeft, Loader2, Users, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react"
+import { Trophy, Award, ArrowLeft, Loader2, Users, TrendingUp, AlertTriangle, Medal } from "lucide-react"
 
 export default function WorkshopAnalyticsPage({ params }) {
   const { id: workshopId } = use(params)
@@ -122,11 +122,17 @@ export default function WorkshopAnalyticsPage({ params }) {
                     <tr key={student.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="p-3 font-bold text-sm">
                         {idx === 0 ? (
-                          <span className="text-amber-500 flex items-center gap-1">🥇 #1</span>
+                          <span className="text-amber-500 flex items-center gap-1 font-extrabold">
+                            <Trophy className="w-4 h-4 text-amber-500" /> #1
+                          </span>
                         ) : idx === 1 ? (
-                          <span className="text-slate-400 flex items-center gap-1">🥈 #2</span>
+                          <span className="text-slate-400 flex items-center gap-1 font-bold">
+                            <Medal className="w-4 h-4 text-slate-400" /> #2
+                          </span>
                         ) : idx === 2 ? (
-                          <span className="text-amber-700 flex items-center gap-1">🥉 #3</span>
+                          <span className="text-amber-700 flex items-center gap-1 font-bold">
+                            <Award className="w-4 h-4 text-amber-700" /> #3
+                          </span>
                         ) : (
                           <span className="text-gray-500">#{idx + 1}</span>
                         )}

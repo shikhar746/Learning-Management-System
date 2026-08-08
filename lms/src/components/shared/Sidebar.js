@@ -4,21 +4,20 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import ThemeToggle from "@/components/shared/ThemeToggle"
+import { BarChart3, GraduationCap, FileText, Crown, Users, LogOut } from "lucide-react"
 
 const studentLinks = [
-  { href: "/student", label: "Dashboard Overview", icon: "📊" },
-  { href: "/student/workshops", label: "My Workshops", icon: "🏫" },
-  { href: "/student/assignments", label: "Assignments", icon: "📝" },
-
+  { href: "/student", label: "Dashboard Overview", icon: BarChart3 },
+  { href: "/student/workshops", label: "My Workshops", icon: GraduationCap },
+  { href: "/student/assignments", label: "Assignments", icon: FileText },
 ]
 
 const adminLinks = [
-  { href: "/admin", label: "Analytics Overview", icon: "📊" },
-  { href: "/admin/owner", label: "Owner Control Panel", icon: "👑" },
-  { href: "/admin/workshops", label: "Workshop Cohorts", icon: "🏫" },
-  { href: "/admin/assignments", label: "Assignment Management", icon: "📝" },
-
-  { href: "/admin/users", label: "Users", icon: "👥" },
+  { href: "/admin", label: "Analytics Overview", icon: BarChart3 },
+  { href: "/admin/owner", label: "Owner Control Panel", icon: Crown },
+  { href: "/admin/workshops", label: "Workshop Cohorts", icon: GraduationCap },
+  { href: "/admin/assignments", label: "Assignment Management", icon: FileText },
+  { href: "/admin/users", label: "Users", icon: Users },
 ]
 
 export default function Sidebar({ role, user }) {
@@ -36,6 +35,7 @@ export default function Sidebar({ role, user }) {
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {links.map((link) => {
+          const IconComponent = link.icon
           const isActive = pathname === link.href || (link.href !== "/admin" && link.href !== "/student" && pathname.startsWith(link.href))
           return (
             <Link
@@ -47,8 +47,8 @@ export default function Sidebar({ role, user }) {
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200"
               }`}
             >
-              <span>{link.icon}</span>
-              {link.label}
+              <IconComponent className="w-4 h-4 shrink-0" />
+              <span>{link.label}</span>
             </Link>
           )
         })}
@@ -78,9 +78,10 @@ export default function Sidebar({ role, user }) {
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors font-medium"
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors font-medium"
         >
-          Sign out
+          <LogOut className="w-4 h-4" />
+          <span>Sign out</span>
         </button>
       </div>
     </aside>
