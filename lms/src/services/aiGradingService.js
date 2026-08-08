@@ -1,69 +1,81 @@
+import { z } from "zod"
 import { db } from "@/lib/db"
 
+/**
+ * Zod Schema for strict LLM Evaluation Output validation
+ */
+const evaluationResultSchema = z.object({
+  suggestedScore: z.coerce.number().min(0),
+  suggestedFeedback: z.string().default("No feedback provided."),
+})
+
+/**
+ * Heuristic fallback ratio constants
+ */
+const FALLBACK_SCORE_RATIOS = {
+  BASE_SUBMISSION: 0.85,
+  REPO_URL_BONUS: 0.10,
+  DEPLOYMENT_URL_BONUS: 0.05,
+}
+
+/**
+ * Main Service Entry Point: Evaluates a student submission using BYOK multi-provider AI models
+ */
 export async function evaluateSubmissionWithByok(submissionId) {
   const submission = await db.submission.findUnique({
     where: { id: submissionId },
-    include: {
+    select: {
+      id: true,
+      repoUrl: true,
+      deploymentUrl: true,
+      driveUrl: true,
+      comments: true,
       assignment: {
-        include: {
-          workshop: true,
+        select: {
+          title: true,
+          instructions: true,
+          maxMarks: true,
+          workshop: {
+            select: {
+              aiProvider: true,
+              aiApiKey: true,
+            },
+          },
         },
       },
-      user: true,
     },
   })
 
   if (!submission) {
-    throw new Error("Submission not found")
+    throw new Error(`Submission with ID ${submissionId} not found`)
   }
 
-  const assignment = submission.assignment
-  const workshop = assignment.workshop
-  const maxMarks = assignment.maxMarks
+  const { assignment } = submission
+  const workshop = assignment?.workshop
+  const maxMarks = assignment?.maxMarks ?? 100
 
   const provider = workshop?.aiProvider || "DEFAULT"
   const customApiKey = workshop?.aiApiKey || null
 
+  const prompt = buildEvaluationPrompt(assignment, submission)
   let result = null
 
-  // System Prompt for Evaluation
-  const prompt = `You are a Senior Full-Stack Instructor evaluating a student assignment.
-Assignment Title: "${assignment.title}"
-Max Marks: ${maxMarks}
-Instructions: "${assignment.instructions}"
-
-Student Artifacts:
-- GitHub Repo URL: "${submission.repoUrl || "None"}"
-- Live Demo URL: "${submission.deploymentUrl || "None"}"
-- Google Drive / Video Demo URL: "${submission.driveUrl || "None"}"
-- Student Comments: "${submission.comments || "None"}"
-
-Evaluate the student's work and return a JSON object with:
-{
-  "suggestedScore": <number between 0 and ${maxMarks}>,
-  "suggestedFeedback": "<2-3 sentence constructive feedback>"
-}`
-
-  try {
-    if (provider === "CLAUDE" && customApiKey) {
-      result = await evaluateWithClaude(customApiKey, prompt, maxMarks)
-    } else if (provider === "GEMINI" && customApiKey) {
-      result = await evaluateWithGemini(customApiKey, prompt, maxMarks)
-    } else if (provider === "KIMI" && customApiKey) {
-      result = await evaluateWithKimi(customApiKey, prompt, maxMarks)
-    } else if (provider === "OPENAI" && customApiKey) {
-      result = await evaluateWithOpenAI(customApiKey, prompt, maxMarks)
+  const providerFetcher = PROVIDER_FETCHERS[provider]
+  if (providerFetcher && customApiKey) {
+    try {
+      const rawText = await providerFetcher(customApiKey, prompt)
+      result = parseAndValidateLlmOutput(rawText, maxMarks, provider)
+    } catch (err) {
+      console.warn(`[AI Grading Service] BYOK Provider (${provider}) API call failed:`, err.message)
     }
-  } catch (err) {
-    console.warn(`BYOK Provider (${provider}) API call failed, falling back to heuristics:`, err.message)
   }
 
-  // Fallback to pattern heuristic if BYOK call is not configured or fails
+  // Fallback to pattern heuristic if BYOK call is unconfigured or fails
   if (!result) {
     result = evaluateWithFallback(submission, maxMarks)
   }
 
-  const updated = await db.submission.update({
+  const updatedSubmission = await db.submission.update({
     where: { id: submissionId },
     data: {
       aiSuggestedScore: result.suggestedScore,
@@ -71,10 +83,20 @@ Evaluate the student's work and return a JSON object with:
     },
   })
 
-  return updated
+  return updatedSubmission
 }
 
-async function evaluateWithClaude(apiKey, prompt, maxMarks) {
+/**
+ * Provider API Fetcher Strategy Registry
+ */
+const PROVIDER_FETCHERS = {
+  CLAUDE: fetchClaude,
+  GEMINI: fetchGemini,
+  KIMI: fetchKimi,
+  OPENAI: fetchOpenAI,
+}
+
+async function fetchClaude(apiKey, prompt) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -90,23 +112,14 @@ async function evaluateWithClaude(apiKey, prompt, maxMarks) {
   })
 
   if (!res.ok) {
-    throw new Error(`Claude API error ${res.status}`)
+    throw new Error(`Claude API error ${res.status}: ${res.statusText}`)
   }
 
   const data = await res.json()
-  const text = data.content?.[0]?.text || ""
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) {
-    const parsed = JSON.parse(jsonMatch[0])
-    return {
-      suggestedScore: Math.min(maxMarks, Math.max(0, parsed.suggestedScore)),
-      suggestedFeedback: `[Claude 3.5 Sonnet BYOK Draft]: ${parsed.suggestedFeedback}`,
-    }
-  }
-  throw new Error("Failed to parse Claude JSON response")
+  return data.content?.[0]?.text || ""
 }
 
-async function evaluateWithGemini(apiKey, prompt, maxMarks) {
+async function fetchGemini(apiKey, prompt) {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
     {
@@ -119,23 +132,14 @@ async function evaluateWithGemini(apiKey, prompt, maxMarks) {
   )
 
   if (!res.ok) {
-    throw new Error(`Gemini API error ${res.status}`)
+    throw new Error(`Gemini API error ${res.status}: ${res.statusText}`)
   }
 
   const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ""
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) {
-    const parsed = JSON.parse(jsonMatch[0])
-    return {
-      suggestedScore: Math.min(maxMarks, Math.max(0, parsed.suggestedScore)),
-      suggestedFeedback: `[Gemini 1.5 Pro BYOK Draft]: ${parsed.suggestedFeedback}`,
-    }
-  }
-  throw new Error("Failed to parse Gemini JSON response")
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || ""
 }
 
-async function evaluateWithKimi(apiKey, prompt, maxMarks) {
+async function fetchKimi(apiKey, prompt) {
   const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -150,19 +154,14 @@ async function evaluateWithKimi(apiKey, prompt, maxMarks) {
   })
 
   if (!res.ok) {
-    throw new Error(`Kimi API error ${res.status}`)
+    throw new Error(`Kimi API error ${res.status}: ${res.statusText}`)
   }
 
   const data = await res.json()
-  const contentStr = data.choices?.[0]?.message?.content || ""
-  const parsed = JSON.parse(contentStr)
-  return {
-    suggestedScore: Math.min(maxMarks, Math.max(0, parsed.suggestedScore)),
-    suggestedFeedback: `[Kimi K3 BYOK Draft]: ${parsed.suggestedFeedback}`,
-  }
+  return data.choices?.[0]?.message?.content || ""
 }
 
-async function evaluateWithOpenAI(apiKey, prompt, maxMarks) {
+async function fetchOpenAI(apiKey, prompt) {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -177,37 +176,85 @@ async function evaluateWithOpenAI(apiKey, prompt, maxMarks) {
   })
 
   if (!res.ok) {
-    throw new Error(`OpenAI API error ${res.status}`)
+    throw new Error(`OpenAI API error ${res.status}: ${res.statusText}`)
   }
 
   const data = await res.json()
-  const contentStr = data.choices?.[0]?.message?.content || ""
-  const parsed = JSON.parse(contentStr)
+  return data.choices?.[0]?.message?.content || ""
+}
+
+/**
+ * Isolated Prompt Factory
+ */
+function buildEvaluationPrompt(assignment, submission) {
+  return `You are a Senior Full-Stack Instructor evaluating a student assignment.
+Assignment Title: "${assignment.title}"
+Max Marks: ${assignment.maxMarks}
+Instructions: "${assignment.instructions}"
+
+Student Artifacts:
+- GitHub Repo URL: "${submission.repoUrl || "None"}"
+- Live Demo URL: "${submission.deploymentUrl || "None"}"
+- Google Drive / Video Demo URL: "${submission.driveUrl || "None"}"
+- Student Comments: "${submission.comments || "None"}"
+
+Evaluate the student's work and return a JSON object with:
+{
+  "suggestedScore": <number between 0 and ${assignment.maxMarks}>,
+  "suggestedFeedback": "<2-3 sentence constructive feedback>"
+}`
+}
+
+/**
+ * Robust LLM JSON Parser & Schema Validator
+ */
+function parseAndValidateLlmOutput(rawText, maxMarks, provider) {
+  const jsonMatch = rawText.match(/\{[\s\S]*?\}/)
+  if (!jsonMatch) {
+    throw new Error(`Failed to extract valid JSON payload from ${provider} output`)
+  }
+
+  const parsedJson = JSON.parse(jsonMatch[0])
+  const validated = evaluationResultSchema.parse(parsedJson)
+
+  const providerTags = {
+    CLAUDE: "Claude 3.5 Sonnet BYOK Draft",
+    GEMINI: "Gemini 1.5 Pro BYOK Draft",
+    KIMI: "Kimi K3 BYOK Draft",
+    OPENAI: "GPT-4o BYOK Draft",
+  }
+
+  const tag = providerTags[provider] || `${provider} BYOK Draft`
+  const clampedScore = Math.min(maxMarks, Math.max(0, Math.round(validated.suggestedScore)))
+
   return {
-    suggestedScore: Math.min(maxMarks, Math.max(0, parsed.suggestedScore)),
-    suggestedFeedback: `[GPT-4o BYOK Draft]: ${parsed.suggestedFeedback}`,
+    suggestedScore: clampedScore,
+    suggestedFeedback: `[${tag}]: ${validated.suggestedFeedback}`,
   }
 }
 
+/**
+ * Heuristic Pattern Fallback Evaluator
+ */
 function evaluateWithFallback(submission, maxMarks) {
-  let score = Math.round(maxMarks * 0.85)
-  let notes = []
+  let scoreRatio = FALLBACK_SCORE_RATIOS.BASE_SUBMISSION
+  const notes = []
 
   if (submission.repoUrl) {
-    score += Math.round(maxMarks * 0.1)
+    scoreRatio += FALLBACK_SCORE_RATIOS.REPO_URL_BONUS
     notes.push("GitHub repo submitted.")
   }
   if (submission.deploymentUrl) {
-    score += Math.round(maxMarks * 0.05)
+    scoreRatio += FALLBACK_SCORE_RATIOS.DEPLOYMENT_URL_BONUS
     notes.push("Live demo URL provided.")
   }
   if (submission.driveUrl) {
     notes.push("Google Drive video asset attached.")
   }
 
-  score = Math.min(maxMarks, Math.max(0, score))
+  const finalScore = Math.min(maxMarks, Math.max(0, Math.round(maxMarks * scoreRatio)))
   return {
-    suggestedScore: score,
-    suggestedFeedback: `[Pattern Draft Review]: Candidate score suggested as ${score}/${maxMarks}. Summary: ${notes.join(" ")}`,
+    suggestedScore: finalScore,
+    suggestedFeedback: `[Pattern Draft Review]: Candidate score suggested as ${finalScore}/${maxMarks}. Summary: ${notes.join(" ")}`,
   }
 }
