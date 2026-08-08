@@ -9,16 +9,16 @@ A full-stack Learning Management System (LMS) built with **Next.js App Router**,
 * **Framework:** Next.js 16 (App Router with Turbopack) & React 19
 * **Styling & UI:** Tailwind CSS v4, shadcn/ui, Lucide React Icons
 * **Database & ORM:** PostgreSQL (Neon DB) & Prisma ORM
-* **Authentication:** NextAuth v5 (Auth.js) with Google OAuth, Credentials Provider (bcryptjs), & JWT session strategy
+* **Authentication:** NextAuth v5 (Auth.js) with Google OAuth, Credentials Provider (`bcryptjs`), & JWT session strategy
 * **File Storage:** Cloudinary SDK & REST API integration for assignment materials and student attachments
-* **Validation & Security:** Role-Based Access Control (RBAC) middleware, Zod schema validation, bcrypt password hashing
+* **Validation & Architecture:** Role-Based Access Control (RBAC) middleware, Zod schema validation, modular service layer
 
 ---
 
 ## ✨ Features & Module Overview
 
 1. **Auth & Signup Module**:
-   - Email & password registration (`/api/auth/register`) with `bcryptjs` password hashing.
+   - Email & password registration (`/api/auth/register`) with `bcryptjs` password hashing and Zod input validation.
    - Google OAuth alongside Credentials authentication via NextAuth v5.
    - Secure JWT session persistence and role propagation (`STUDENT`, `ADMIN`, `OWNER`).
 
@@ -49,38 +49,27 @@ A full-stack Learning Management System (LMS) built with **Next.js App Router**,
 
 ```text
 Learning Management System/
-├── Readme.md                 # Root project documentation
+├── README.md                 # Root project documentation
 ├── currentwork.md            # Active milestone status & roadmap
-├── prompt1.md                # Architecture & foundation spec
-├── prompt2.md                # Functional milestone requirements
-├── prompt3.md                # Step-by-step implementation workflow
 └── lms/                      # Core Next.js Application
     ├── prisma/
     │   └── schema.prisma     # Prisma models (User, Assignment, Submission, Progress, etc.)
     ├── src/
     │   ├── app/
-    │   │   ├── (auth)/
-    │   │   │   ├── login/    # Login page (Credentials + Google OAuth)
-    │   │   │   └── register/ # User registration page
-    │   │   ├── (dashboard)/
-    │   │   │   ├── admin/    # Admin analytics, assignments CRUD, submissions & grading
-    │   │   │   └── student/  # Student dashboard, assignment list, and submission modal
-    │   │   ├── api/
-    │   │   │   ├── admin/submissions/[id]/grade/ # Grading endpoint
-    │   │   │   ├── analytics/# Dashboard metrics aggregation
-    │   │   │   ├── assignments/ # Assignment CRUD API
-    │   │   │   ├── auth/     # NextAuth route handler & user registration
-    │   │   │   ├── submissions/ # Submission & resubmission API
-    │   │   │   └── upload/   # Cloudinary upload handler
+    │   │   ├── (auth)/       # Auth pages (login, register)
+    │   │   ├── (dashboard)/  # Protected Admin & Student layouts, pages, loading & error boundaries
+    │   │   ├── api/          # Route handlers (auth, assignments, submissions, grading, analytics, upload)
     │   │   ├── globals.css   # Global styles & Tailwind CSS configuration
-    │   │   └── layout.js     # Root layout & NextAuth session provider
+    │   │   └── layout.js     # Root layout & NextAuth session provider wrapper
     │   ├── components/
-    │   │   ├── dashboard/    # AnalyticsCards, AssignmentForm, SubmissionModal, GradingModal
-    │   │   └── ui/           # FileUpload, Button, Input, Card, Badge, Label
-    │   ├── lib/
-    │   │   └── db.js         # Global Prisma Client singleton
+    │   │   ├── admin/        # Admin UI components (AssignmentForm, CreateTutorialForm, GradingModal)
+    │   │   ├── student/      # Student UI components (SubmissionModal)
+    │   │   ├── shared/       # Shared widgets (AnalyticsCards, FileUpload, Sidebar, TutorialCard, TutorialGrid)
+    │   │   ├── providers/    # Client SessionProvider wrapper
+    │   │   └── ui/           # Pure shadcn design system primitives (button, input, card, badge, label)
+    │   ├── services/         # Modular service layer (assignmentService, submissionService, analyticsService)
+    │   ├── lib/              # Central config (auth.js, db.js, utils.js) & Zod validations
     │   └── middleware.js     # RBAC & route protection middleware
-    ├── auth.js               # NextAuth v5 configuration
     └── package.json          # App dependencies & scripts
 ```
 
@@ -94,7 +83,7 @@ Learning Management System/
 - **Cloudinary Account**: Cloud name, API Key, and API Secret
 
 ### 2. Environment Configuration
-Create a `.env.local` file in the `lms/` directory:
+Create a `.env.local` file inside the `lms/` directory:
 
 ```env
 DATABASE_URL="postgresql://user:password@host:5432/lms_db?sslmode=require"
@@ -106,10 +95,10 @@ AUTH_GOOGLE_ID="your-google-client-id"
 AUTH_GOOGLE_SECRET="your-google-client-secret"
 
 # Cloudinary Credentials
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="dxeuly7xo"
-CLOUDINARY_API_KEY="876595632698537"
-CLOUDINARY_API_SECRET="7NQndmOVJgl4rwW5LQnX1q-t4pY"
-CLOUDINARY_URL="cloudinary://876595632698537:7NQndmOVJgl4rwW5LQnX1q-t4pY@dxeuly7xo"
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your-cloudinary-cloud-name"
+CLOUDINARY_API_KEY="your-cloudinary-api-key"
+CLOUDINARY_API_SECRET="your-cloudinary-api-secret"
+CLOUDINARY_URL="cloudinary://your-api-key:your-api-secret@your-cloud-name"
 ```
 
 ### 3. Database Migration & Client Generation
