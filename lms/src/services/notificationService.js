@@ -37,7 +37,7 @@ export async function sendAssignmentNotification(assignment, studentEmails = [])
   if (transport) {
     try {
       await transport.sendMail({
-        from: process.env.SMTP_FROM || '"LMS Platform" <noreply@lms.com>',
+        from: process.env.SMTP_FROM || '"Minerva" <noreply@minerva.dev>',
         to: studentEmails.join(", "),
         subject,
         html,
@@ -76,7 +76,7 @@ export async function sendGradeNotification(submission, studentEmail) {
   if (transport) {
     try {
       await transport.sendMail({
-        from: process.env.SMTP_FROM || '"LMS Platform" <noreply@lms.com>',
+        from: process.env.SMTP_FROM || '"Minerva" <noreply@minerva.dev>',
         to: studentEmail,
         subject,
         html,
