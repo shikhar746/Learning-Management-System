@@ -1,7 +1,7 @@
 import { Redis } from "@upstash/redis"
 
 /**
- * Server-Side Redis Caching Layer for Minerva
+ * Server-Side Redis Caching Layer for Minnerva
  *
  * Uses Upstash Redis HTTP SDK (ideal for Next.js, Vercel & serverless).
  * Includes automatic in-memory TTL fallback when Redis environment variables are missing,

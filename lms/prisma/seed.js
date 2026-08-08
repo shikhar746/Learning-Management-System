@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs")
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log("🌱 Starting LMS database seed...")
+  console.log("🌱 Starting Minnerva database seed...")
 
   // Hashed default password: "password123"
   const hashedPassword = await bcrypt.hash("password123", 10)

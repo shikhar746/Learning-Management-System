@@ -5,7 +5,7 @@ import Providers from "@/components/providers/Providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Minerva",
+  title: "Minnerva",
   description: "Workshops, assignments, and AI-powered code review",
 }
 

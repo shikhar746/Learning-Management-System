@@ -1,5 +1,5 @@
 /**
- * SWR Fetcher & Caching Utilities for Minerva
+ * SWR Fetcher & Caching Utilities for Minnerva
  *
  * SWR provides:
  * - Automatic request deduplication (same URL fetched by 5 components = 1 network request)

@@ -56,7 +56,7 @@ export async function POST(req) {
     const uploadResponse = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: "lms_platform_uploads",
+          folder: "minnerva_platform_uploads",
           resource_type: "auto",
         },
         (error, result) => {

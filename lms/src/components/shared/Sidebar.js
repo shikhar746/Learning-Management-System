@@ -29,7 +29,7 @@ export default function Sidebar({ role, user }) {
     <aside className="w-64 h-screen sticky top-0 shrink-0 overflow-hidden bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-colors select-none">
       <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Minerva</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Minnerva</h2>
           <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{role} portal</span>
         </div>
       </div>
