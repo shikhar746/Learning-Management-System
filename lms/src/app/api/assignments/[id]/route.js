@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { updateAssignmentSchema } from "@/lib/validations/assignment"
 import { getAssignmentById, updateAssignment, deleteAssignment } from "@/services/assignmentService"
 import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
@@ -10,21 +11,30 @@ export async function GET(req, { params }) {
     const { id } = await params
     const session = await auth()
 
-    const isAdminOrOwner =
-      session?.user?.role === "ADMIN" || session?.user?.role === "OWNER"
+    let isAdminOrOwner = false
+    let userId = session?.user?.id
 
-    const assignment = await getAssignmentById(id, session?.user?.id, isAdminOrOwner)
+    if (session?.user) {
+      const dbUser = await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true },
+      })
+      const role = dbUser?.role || session.user.role
+      isAdminOrOwner = role === "ADMIN" || role === "OWNER"
+    }
+
+    const assignment = await getAssignmentById(id, userId, isAdminOrOwner)
 
     if (!assignment) {
-      return NextResponse.json({ error: "Assignment not found" }, { status: 404 })
+      return NextResponse.json({ error: "Assignment not found or restricted" }, { status: 404 })
     }
 
     return NextResponse.json(assignment)
   } catch (error) {
     console.error("Get assignment error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: error.message || "Failed to fetch assignment" },
+      { status: 400 }
     )
   }
 }
@@ -34,12 +44,18 @@ export async function PUT(req, { params }) {
     const { id } = await params
     const session = await auth()
 
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (session.user.role !== "ADMIN" && session.user.role !== "OWNER") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const dbUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    })
+    const role = dbUser?.role || session.user.role
+
+    if (role !== "ADMIN" && role !== "OWNER") {
+      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
     }
 
     const body = await req.json()
@@ -57,8 +73,8 @@ export async function PUT(req, { params }) {
   } catch (error) {
     console.error("Update assignment error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: error.message || "Failed to update assignment" },
+      { status: 400 }
     )
   }
 }
@@ -68,12 +84,18 @@ export async function DELETE(req, { params }) {
     const { id } = await params
     const session = await auth()
 
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (session.user.role !== "ADMIN" && session.user.role !== "OWNER") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const dbUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    })
+    const role = dbUser?.role || session.user.role
+
+    if (role !== "ADMIN" && role !== "OWNER") {
+      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
     }
 
     await deleteAssignment(id)
@@ -81,8 +103,8 @@ export async function DELETE(req, { params }) {
   } catch (error) {
     console.error("Delete assignment error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: error.message || "Failed to delete assignment" },
+      { status: 400 }
     )
   }
 }

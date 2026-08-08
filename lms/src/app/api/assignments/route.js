@@ -27,8 +27,8 @@ export async function GET(req) {
   } catch (error) {
     console.error("Fetch assignments error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: error.message || "Failed to fetch assignments" },
+      { status: 400 }
     )
   }
 }
@@ -48,7 +48,7 @@ export async function POST(req) {
     const role = dbUser?.role || session.user.role
 
     if (role !== "ADMIN" && role !== "OWNER") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
     }
 
     const body = await req.json()
@@ -66,8 +66,8 @@ export async function POST(req) {
   } catch (error) {
     console.error("Create assignment error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: error.message || "Failed to create assignment" },
+      { status: 400 }
     )
   }
 }
