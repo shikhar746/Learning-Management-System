@@ -3,7 +3,11 @@ import { z } from "zod"
 export const createWorkshopSchema = z.object({
   name: z.string().min(3, "Workshop name must be at least 3 characters long"),
   description: z.string().optional(),
-  code: z.string().min(4, "Invite code must be at least 4 characters long").optional(),
+  code: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => (val && val.trim().length > 0 ? val.trim().toUpperCase() : undefined)),
   validUntil: z.string().optional().nullable(),
   aiProvider: z.enum(["CLAUDE", "GEMINI", "KIMI", "OPENAI", "DEFAULT"]).optional().default("DEFAULT"),
   aiApiKey: z.string().optional().nullable(),

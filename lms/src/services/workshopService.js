@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { invalidateCachePattern } from "@/lib/redis"
 
 function generateInviteCode() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -9,8 +10,8 @@ function generateInviteCode() {
   return code
 }
 
-export async function createWorkshop({ name, description, code, validUntil, createdById }) {
-  let inviteCode = code ? code.trim().toUpperCase() : generateInviteCode()
+export async function createWorkshop({ name, description, code, validUntil, createdById, aiProvider, aiApiKey }) {
+  let inviteCode = code && code.trim().length > 0 ? code.trim().toUpperCase() : generateInviteCode()
 
   // Ensure unique invite code
   let isDuplicate = await db.workshop.findUnique({ where: { code: inviteCode } })
@@ -22,9 +23,11 @@ export async function createWorkshop({ name, description, code, validUntil, crea
   const workshop = await db.workshop.create({
     data: {
       name,
-      description,
+      description: description || null,
       code: inviteCode,
       validUntil: validUntil ? new Date(validUntil) : null,
+      aiProvider: aiProvider || "DEFAULT",
+      aiApiKey: aiApiKey || null,
       createdById,
       userRoles: {
         create: {
@@ -37,6 +40,9 @@ export async function createWorkshop({ name, description, code, validUntil, crea
       userRoles: true,
     },
   })
+
+  // Purge analytics cache so new workshop displays immediately
+  invalidateCachePattern("analytics:")
 
   return workshop
 }
@@ -73,7 +79,7 @@ export async function getWorkshopsForUser(userId, userRole) {
     })
   }
 
-  // Regular user (Admin or Student): fetch workshops they are explicitly enrolled in
+  // Regular user (Admin or Student): fetch workshops they are explicitly enrolled in or created
   const userRoles = await db.userRole.findMany({
     where: { userId },
     include: {
@@ -173,6 +179,9 @@ export async function joinWorkshopByCode(code, userId) {
     },
   })
 
+  // Purge analytics cache on new enrollment
+  invalidateCachePattern("analytics:")
+
   return { workshop, alreadyJoined: false, role: userRole.role }
 }
 
@@ -232,14 +241,19 @@ export async function updateWorkshop(workshopId, data) {
     updatedData.validUntil = new Date(data.validUntil)
   }
 
-  return await db.workshop.update({
+  const res = await db.workshop.update({
     where: { id: workshopId },
     data: updatedData,
   })
+
+  invalidateCachePattern("analytics:")
+  return res
 }
 
 export async function deleteWorkshop(workshopId) {
-  return await db.workshop.delete({
+  const res = await db.workshop.delete({
     where: { id: workshopId },
   })
+  invalidateCachePattern("analytics:")
+  return res
 }
