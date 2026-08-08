@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Key, Users, ShieldCheck, Mail, ArrowLeft, Loader2, AlertCircle, CheckCircle2, Copy, Check, Trash2 } from "lucide-react"
+import { Key, Users, ShieldCheck, Mail, ArrowLeft, Loader2, AlertCircle, CheckCircle2, Copy, Check, Trash2, Sparkles, Cpu, Eye, EyeOff } from "lucide-react"
 
 export default function WorkshopControlRoomPage({ params }) {
   const { id } = use(params)
@@ -18,11 +18,22 @@ export default function WorkshopControlRoomPage({ params }) {
   const [inviteMsg, setInviteMsg] = useState({ error: "", success: "" })
   const [copied, setCopied] = useState(false)
 
+  // BYOK State
+  const [aiProvider, setAiProvider] = useState("DEFAULT")
+  const [aiApiKey, setAiApiKey] = useState("")
+  const [showKey, setShowKey] = useState(false)
+  const [aiSaving, setAiSaving] = useState(false)
+  const [aiMsg, setAiMsg] = useState({ error: "", success: "" })
+
   useEffect(() => {
     fetch(`/api/workshops/${id}`)
       .then((res) => res.json())
       .then((data) => {
-        if (!data.error) setWorkshop(data)
+        if (!data.error) {
+          setWorkshop(data)
+          setAiProvider(data.aiProvider || "DEFAULT")
+          setAiApiKey(data.aiApiKey || "")
+        }
       })
       .catch((err) => console.error("Failed to load workshop:", err))
       .finally(() => setLoading(false))
@@ -33,6 +44,35 @@ export default function WorkshopControlRoomPage({ params }) {
     navigator.clipboard.writeText(workshop.code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleSaveByokSettings = async (e) => {
+    e.preventDefault()
+    setAiSaving(true)
+    setAiMsg({ error: "", success: "" })
+
+    try {
+      const res = await fetch(`/api/workshops/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aiProvider,
+          aiApiKey: aiApiKey.trim() || null,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update AI settings")
+      }
+
+      setAiMsg({ success: `BYOK AI Provider updated to ${data.aiProvider}!`, error: "" })
+    } catch (err) {
+      setAiMsg({ error: err.message, success: "" })
+    } finally {
+      setAiSaving(false)
+    }
   }
 
   const handleInviteAdmin = async (e) => {
@@ -57,7 +97,6 @@ export default function WorkshopControlRoomPage({ params }) {
 
       setInviteMsg({ success: `User ${data.user?.email} added as Admin successfully!`, error: "" })
       setInviteEmail("")
-      // Refresh workshop data
       const refreshRes = await fetch(`/api/workshops/${id}`)
       const refreshedData = await refreshRes.json()
       if (!refreshedData.error) setWorkshop(refreshedData)
@@ -157,6 +196,74 @@ export default function WorkshopControlRoomPage({ params }) {
           <p className="text-xl font-bold font-mono text-gray-900 tracking-wider">{workshop.code}</p>
         </div>
       </div>
+
+      {/* BYOK AI Provider Settings Panel */}
+      <form onSubmit={handleSaveByokSettings} className="bg-white border border-purple-200 rounded-xl p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-5 h-5 text-purple-600" />
+            <div>
+              <h3 className="font-bold text-gray-900 text-base">Bring Your Own Key (BYOK) — Multimodal AI Grading</h3>
+              <p className="text-xs text-gray-500">Configure your institution's API key to evaluate code repos, PDFs, and video logs.</p>
+            </div>
+          </div>
+          <span className="bg-purple-100 text-purple-800 text-xs font-bold px-2.5 py-1 rounded-full">
+            Active Provider: {aiProvider}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <Label htmlFor="aiProvider" className="text-xs">Select AI Model Provider</Label>
+            <select
+              id="aiProvider"
+              className="w-full rounded-md border border-gray-300 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold"
+              value={aiProvider}
+              onChange={(e) => setAiProvider(e.target.value)}
+            >
+              <option value="DEFAULT">Pattern Heuristic Fallback (Free / Built-in)</option>
+              <option value="CLAUDE">Anthropic Claude 3.5 Sonnet (Deep Code Review)</option>
+              <option value="GEMINI">Google Gemini 1.5 Pro (Multimodal Video / PDF / Code)</option>
+              <option value="KIMI">Moonshot Kimi K3 (Long-Context Evaluation)</option>
+              <option value="OPENAI">OpenAI GPT-4o (Rubric Evaluation)</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="aiApiKey" className="text-xs">Instructor API Key</Label>
+            <div className="relative">
+              <Input
+                id="aiApiKey"
+                type={showKey ? "text" : "password"}
+                placeholder={aiProvider === "DEFAULT" ? "No key needed for default heuristic" : `Enter your ${aiProvider} API key...`}
+                disabled={aiProvider === "DEFAULT"}
+                value={aiApiKey}
+                onChange={(e) => setAiApiKey(e.target.value)}
+                className="text-xs font-mono pr-10"
+              />
+              {aiProvider !== "DEFAULT" && (
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {aiMsg.error && <p className="text-xs text-red-600">{aiMsg.error}</p>}
+        {aiMsg.success && <p className="text-xs text-green-600 font-semibold">{aiMsg.success}</p>}
+
+        <div className="flex justify-end pt-1">
+          <Button type="submit" size="sm" disabled={aiSaving} className="bg-purple-700 hover:bg-purple-800 text-xs">
+            {aiSaving && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />}
+            Save AI Provider Settings
+          </Button>
+        </div>
+      </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column: Admin Invite & Instructors */}

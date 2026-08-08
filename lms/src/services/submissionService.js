@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { evaluateSubmissionWithByok } from "@/services/aiGradingService"
 
 export async function createSubmission(data, userId) {
   const { assignmentId, repoUrl, deploymentUrl, driveUrl, branch, fileUrls, comments } = data
@@ -83,49 +84,7 @@ export async function getSubmissionById(submissionId) {
 }
 
 export async function generateAiGradeSuggestion(submissionId) {
-  const submission = await db.submission.findUnique({
-    where: { id: submissionId },
-    include: { assignment: true, user: true },
-  })
-
-  if (!submission) {
-    throw new Error("Submission not found")
-  }
-
-  const maxMarks = submission.assignment.maxMarks
-  let suggestedScore = Math.round(maxMarks * 0.85) // Default heuristic base
-  let feedbackPoints = []
-
-  if (submission.repoUrl) {
-    suggestedScore += Math.round(maxMarks * 0.1)
-    feedbackPoints.push("GitHub Repository submitted and verified.")
-  }
-
-  if (submission.deploymentUrl) {
-    suggestedScore += Math.round(maxMarks * 0.05)
-    feedbackPoints.push("Live Deployment URL provided.")
-  }
-
-  if (submission.driveUrl) {
-    feedbackPoints.push("Google Drive / Video Demonstration asset attached.")
-  }
-
-  if (submission.comments) {
-    feedbackPoints.push(`Student Notes: "${submission.comments.slice(0, 100)}"`)
-  }
-
-  suggestedScore = Math.min(maxMarks, Math.max(0, suggestedScore))
-  const suggestedFeedback = `AI Draft Review: Candidate score suggested as ${suggestedScore}/${maxMarks}.\nSummary: ${feedbackPoints.join(" ")}\nNote: Instructor approval required before publishing.`
-
-  const updated = await db.submission.update({
-    where: { id: submissionId },
-    data: {
-      aiSuggestedScore: suggestedScore,
-      aiSuggestedFeedback: suggestedFeedback,
-    },
-  })
-
-  return updated
+  return await evaluateSubmissionWithByok(submissionId)
 }
 
 export async function gradeSubmission(submissionId, gradeData) {

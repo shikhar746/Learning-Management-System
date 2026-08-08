@@ -5,6 +5,8 @@ export const createWorkshopSchema = z.object({
   description: z.string().optional(),
   code: z.string().min(4, "Invite code must be at least 4 characters long").optional(),
   validUntil: z.string().optional().nullable(),
+  aiProvider: z.enum(["CLAUDE", "GEMINI", "KIMI", "OPENAI", "DEFAULT"]).optional().default("DEFAULT"),
+  aiApiKey: z.string().optional().nullable(),
 })
 
 export const updateWorkshopSchema = z.object({
@@ -12,6 +14,8 @@ export const updateWorkshopSchema = z.object({
   description: z.string().optional(),
   status: z.enum(["ACTIVE", "COMPLETED", "ARCHIVED"]).optional(),
   validUntil: z.string().optional().nullable(),
+  aiProvider: z.enum(["CLAUDE", "GEMINI", "KIMI", "OPENAI", "DEFAULT"]).optional(),
+  aiApiKey: z.string().optional().nullable(),
 })
 
 export const joinWorkshopSchema = z.object({
