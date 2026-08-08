@@ -1,35 +1,28 @@
-**Milestone 1 — Database Foundation**
+# 🎯 LMS Platform Milestone Progress
 
-Prisma schema for User, Account, Session, VerificationToken, Assignment, Submission, plus enums (Role, SubmissionStatus) and relations/indexes. Nothing works without this existing first — auth and assignments both depend on these models.
+- [x] **Milestone 1 — Database Foundation**
+  Prisma schema for User, Account, Session, VerificationToken, Assignment, Submission, Progress, enums (Role, SubmissionStatus), relations, and indexes.
 
-**Milestone 2 — Authentication Core**
+- [x] **Milestone 2 — Authentication Core**
+  Credentials provider (bcryptjs) + Google OAuth in NextAuth v5, JWT session strategy, role injection, middleware-based route protection, register API route with Zod validation.
 
-Credentials provider (bcrypt) + Google OAuth wired into the existing NextAuth config, JWT session strategy, role injection into session/token, middleware-based route protection (admin vs student), register API route with validation.
+- [x] **Milestone 3 — RBAC + Protected Layouts**
+  Server-side role checks in `(dashboard)` layout, middleware route protection, session-based UI rendering in Sidebar.
 
-**Milestone 3 — RBAC + Protected Layouts**
+- [x] **Milestone 4 — Assignment Management (Admin)**
+  CRUD API routes for assignments (`/api/assignments`), publish/unpublish toggle, deadline + maxMarks configuration, admin UI (create/edit forms, list, detail views).
 
-Server-side role checks in (dashboard)/admin and (dashboard)/student layouts, redirect logic, session-based UI rendering in Sidebar.
+- [x] **Milestone 5 — File Upload Infrastructure**
+  Cloudinary SDK integration (`/api/upload`), MIME/size validation (max 10MB), reusable `FileUpload.js` component for admin materials and student attachments.
 
-**Milestone 4 — Assignment Management (Admin)**
+- [x] **Milestone 6 — Student Assignment View + Submission Workflow**
+  Student-facing assignment list/detail, submission modal (file/GitHub URL/deployment URL/comments), resubmission versioning (`v1`, `v2`, `v3`), submission status tracking.
 
-CRUD API routes for assignments, publish/unpublish, deadline + max marks, admin UI (create/edit forms, list, detail view).
+- [x] **Milestone 7 — Grading Workflow**
+  Admin submission review panel, marks + feedback entry, publish-grades action (`isGradePublished`), student-facing grade and feedback view.
 
-**Milestone 5 — File Upload Infrastructure**
+- [x] **Milestone 8 — Dashboard Aggregation**
+  Admin stats (totals, pending, percentage, per-assignment class averages) and student stats (pending, submitted, upcoming deadlines, course progress).
 
-Cloudinary integration, signed upload strategy, MIME/size validation, reusable upload utility — built before submissions need it.
-
-**Milestone 6 — Student Assignment View + Submission Workflow**
-
-Student-facing assignment list/detail, submission form (file/GitHub URL/deployment URL/comments), resubmission logic, submission status.
-
-**Milestone 7 — Grading Workflow**
-
-Admin submission review UI, marks + feedback entry, publish-grades action, student-facing grade/feedback view.
-
-**Milestone 8 — Dashboard Aggregation**
-
-Admin stats (totals, pending, percentage, per-assignment breakdown) and student stats (pending, submitted, upcoming deadlines, progress) replacing placeholder data.
-
-**Milestone 9 — Security Hardening Pass**
-
-Rate limiting, input validation audit (zod schemas across all routes), ownership checks audit, CSRF/XSS review.
+- [x] **Milestone 9 — Security & Architectural Hardening Pass**
+  Centralized Zod schemas across all endpoints, extracted service layer (`src/services/`), RBAC middleware audit, input validation, and App Router fallback boundaries (`loading.js`, `error.js`).
