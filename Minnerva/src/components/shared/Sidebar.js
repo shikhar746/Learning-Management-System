@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import ThemeToggle from "@/components/shared/ThemeToggle"
@@ -34,9 +35,18 @@ export default function Sidebar({ role, user }) {
   return (
     <aside className="w-64 h-screen sticky top-0 shrink-0 overflow-hidden bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-colors select-none">
       <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Minnerva</h2>
-          <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{role} portal</span>
+        <div className="flex items-center gap-2.5">
+          <Image
+            src="/icon.png"
+            alt="Minnerva Logo"
+            width={32}
+            height={32}
+            className="rounded-md shrink-0"
+          />
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Minnerva</h2>
+            <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{role} portal</span>
+          </div>
         </div>
       </div>
 
