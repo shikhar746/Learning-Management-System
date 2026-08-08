@@ -24,7 +24,7 @@ export default async function Home() {
           <span className="text-blue-600">Ship real projects.</span>
         </h1>
         <p className="text-xl text-gray-500 mb-8">
-          A hands-on coding platform with tutorials, assignments, and AI-powered
+          A hands-on coding platform with workshops, assignments, and AI-powered
           code review.
         </p>
         <Link href="/login">

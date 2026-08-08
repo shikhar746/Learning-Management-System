@@ -8,5 +8,5 @@ export default async function StudentRedirectPage(){
     }
 
     // no further auth
-    redirect("/student/tutorials")
+    redirect("/student")
 }

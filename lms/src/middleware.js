@@ -22,7 +22,7 @@ export default auth((req) => {
   const isAdminOrOwner = role === "ADMIN" || role === "OWNER"
 
   if (isAdminRoute && !isAdminOrOwner) {
-    return NextResponse.redirect(new URL("/student/tutorials", req.url))
+    return NextResponse.redirect(new URL("/student", req.url))
   }
 
   return NextResponse.next()

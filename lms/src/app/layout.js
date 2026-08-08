@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
   title: "LMS Platform",
-  description: "Coding tutorials and assignments",
+  description: "Workshops, assignments, and AI-powered code review",
 }
 
 export default function RootLayout({ children }) {

@@ -76,8 +76,6 @@ export const getStudentAnalytics = async (studentId) => {
   const [
     totalPublishedAssignments,
     completedSubmissions,
-    totalTutorials,
-    completedTutorialsCount,
     upcomingDeadlines,
   ] = await Promise.all([
     db.assignment.count({ where: { published: true, deletedAt: null } }),
@@ -87,8 +85,6 @@ export const getStudentAnalytics = async (studentId) => {
         assignment: { select: { id: true, title: true, maxMarks: true } },
       },
     }),
-    db.tutorial.count({ where: { published: true } }),
-    db.progress.count({ where: { userId: studentId, completed: true } }),
     db.assignment.findMany({
       where: {
         published: true,
@@ -108,8 +104,8 @@ export const getStudentAnalytics = async (studentId) => {
   const pendingCount = Math.max(0, totalPublishedAssignments - submittedCount)
 
   const courseProgress =
-    totalTutorials > 0
-      ? Number(((completedTutorialsCount / totalTutorials) * 100).toFixed(1))
+    totalPublishedAssignments > 0
+      ? Number(((submittedCount / totalPublishedAssignments) * 100).toFixed(1))
       : 0
 
   const gradedSubmissions = completedSubmissions.filter(

@@ -23,7 +23,7 @@ model User {
   certificates       Certificate[]
   forumPosts         ForumPost[]
   forumTopics        ForumTopic[]
-  progress           Progress[]
+
   sessions           Session[]
   submissions        Submission[]
   workshopRoles      UserRole[]
@@ -100,26 +100,14 @@ model Workshop {
   @@index([createdById])
 }
 
-model Tutorial {
-  id          String       @id @default(cuid())
-  title       String
-  description String
-  content     String
-  videoUrl    String?
-  difficulty  String       @default("beginner")
-  published   Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  assignments Assignment[]
-  progress    Progress[]
-}
+
 
 model Assignment {
   id                String       @id @default(cuid())
   title             String
   description       String
   instructions      String
-  tutorialId        String?
+
   dueDate           DateTime?
   maxMarks          Int
   allowResubmission Boolean      @default(true)
@@ -132,7 +120,7 @@ model Assignment {
   enableAiGrading   Boolean      @default(true)
   workshopId        String?
   createdBy         User         @relation("CreatedAssignments", fields: [createdById], references: [id])
-  tutorial          Tutorial?    @relation(fields: [tutorialId], references: [id])
+
   workshop          Workshop?    @relation(fields: [workshopId], references: [id], onDelete: Cascade)
   forumTopics       ForumTopic[]
   submissions       Submission[]
@@ -174,17 +162,7 @@ model Submission {
   @@index([deletedAt])
 }
 
-model Progress {
-  id         String   @id @default(cuid())
-  userId     String
-  tutorialId String
-  completed  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  tutorial   Tutorial @relation(fields: [tutorialId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
 
-  @@unique([userId, tutorialId])
-}
 
 model ForumTopic {
   id           String      @id @default(cuid())

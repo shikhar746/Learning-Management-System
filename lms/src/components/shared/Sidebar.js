@@ -9,7 +9,7 @@ const studentLinks = [
   { href: "/student", label: "Dashboard Overview", icon: "📊" },
   { href: "/student/workshops", label: "My Workshops", icon: "🏫" },
   { href: "/student/assignments", label: "Assignments", icon: "📝" },
-  { href: "/student/tutorials", label: "Tutorials", icon: "📚" },
+
 ]
 
 const adminLinks = [
@@ -17,7 +17,7 @@ const adminLinks = [
   { href: "/admin/owner", label: "Owner Control Panel", icon: "👑" },
   { href: "/admin/workshops", label: "Workshop Cohorts", icon: "🏫" },
   { href: "/admin/assignments", label: "Assignment Management", icon: "📝" },
-  { href: "/admin/tutorials", label: "Tutorials", icon: "📚" },
+
   { href: "/admin/users", label: "Users", icon: "👥" },
 ]
 

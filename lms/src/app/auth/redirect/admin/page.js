@@ -15,5 +15,5 @@ export default async function AdminRedirectPage(){
         redirect("/login?error=not_admin")
     }
 
-    redirect("/admin/tutorials")
+    redirect("/admin")
 }
