@@ -1,13 +1,17 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, Send, ShieldAlert, CheckCircle, Loader2 } from "lucide-react"
+import { MessageSquare, Send, ShieldAlert, CheckCircle, Loader2, Trash2, Check } from "lucide-react"
 
 export default function ForumThread({ topic, onPostAdded }) {
+  const { data: session } = useSession()
   const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  const isAdminOrOwner = session?.user?.role === "ADMIN" || session?.user?.role === "OWNER"
 
   const handlePostSubmit = async (e) => {
     e.preventDefault()
@@ -38,6 +42,31 @@ export default function ForumThread({ topic, onPostAdded }) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleApprovePost = async (postId) => {
+    try {
+      const res = await fetch(`/api/forum/posts/${postId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moderationStatus: "APPROVED" }),
+      })
+      if (res.ok && onPostAdded) onPostAdded()
+    } catch (err) {
+      alert("Failed to approve post")
+    }
+  }
+
+  const handleDeletePost = async (postId) => {
+    if (!confirm("Are you sure you want to delete this post?")) return
+    try {
+      const res = await fetch(`/api/forum/posts/${postId}`, {
+        method: "DELETE",
+      })
+      if (res.ok && onPostAdded) onPostAdded()
+    } catch (err) {
+      alert("Failed to delete post")
     }
   }
 
@@ -89,11 +118,33 @@ export default function ForumThread({ topic, onPostAdded }) {
                   </div>
                 </div>
 
-                {post.moderationStatus === "FLAGGED" && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold flex items-center gap-1">
-                    <ShieldAlert className="w-3 h-3" /> Flagged by Moderation
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {post.moderationStatus === "FLAGGED" && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold flex items-center gap-1">
+                      <ShieldAlert className="w-3 h-3" /> Flagged by Moderation
+                    </span>
+                  )}
+
+                  {isAdminOrOwner && post.moderationStatus === "FLAGGED" && (
+                    <button
+                      onClick={() => handleApprovePost(post.id)}
+                      className="text-[10px] bg-green-100 hover:bg-green-200 text-green-800 font-semibold px-2 py-0.5 rounded flex items-center gap-1 transition-colors"
+                      title="Approve / Unflag Post"
+                    >
+                      <Check className="w-3 h-3" /> Approve
+                    </button>
+                  )}
+
+                  {isAdminOrOwner && (
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      className="text-[10px] text-red-600 hover:text-red-800 p-1"
+                      title="Delete Post"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{post.content}</p>
