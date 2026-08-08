@@ -1,19 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import FileUpload from "@/components/shared/FileUpload"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle, Loader2, ShieldCheck, Sparkles } from "lucide-react"
 
 export default function AssignmentForm({ initialData = null, isEditing = false }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [workshops, setWorkshops] = useState([])
 
   const [formData, setFormData] = useState({
+    workshopId: initialData?.workshopId || "",
     title: initialData?.title || "",
     description: initialData?.description || "",
     instructions: initialData?.instructions || "",
@@ -22,9 +24,19 @@ export default function AssignmentForm({ initialData = null, isEditing = false }
       : "",
     maxMarks: initialData?.maxMarks || 100,
     allowResubmission: initialData?.allowResubmission ?? true,
+    enableAiGrading: initialData?.enableAiGrading ?? true,
     attachments: initialData?.attachments || [],
     published: initialData?.published ?? true,
   })
+
+  useEffect(() => {
+    fetch("/api/workshops")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.workshops) setWorkshops(data.workshops)
+      })
+      .catch((err) => console.error("Failed to load workshops:", err))
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -42,6 +54,7 @@ export default function AssignmentForm({ initialData = null, isEditing = false }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          workshopId: formData.workshopId || null,
           maxMarks: Number(formData.maxMarks),
         }),
       })
@@ -69,6 +82,27 @@ export default function AssignmentForm({ initialData = null, isEditing = false }
           <span>{error}</span>
         </div>
       )}
+
+      <div className="space-y-2">
+        <Label htmlFor="workshopId" className="flex items-center gap-1.5">
+          <ShieldCheck className="w-4 h-4 text-purple-600" />
+          Target Workshop Cohort (Multi-Tenant Isolation)
+        </Label>
+        <select
+          id="workshopId"
+          className="w-full rounded-md border border-gray-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={formData.workshopId}
+          onChange={(e) => setFormData({ ...formData, workshopId: e.target.value })}
+        >
+          <option value="">Global (General Task across platform)</option>
+          {workshops.map((w) => (
+            <option key={w.id} value={w.id}>
+              {w.name} (Code: {w.code})
+            </option>
+          ))}
+        </select>
+        <p className="text-[11px] text-gray-400">Restricts visibility of this task strictly to students enrolled in this cohort.</p>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="title">Assignment Title</Label>
@@ -156,7 +190,7 @@ export default function AssignmentForm({ initialData = null, isEditing = false }
         </div>
       )}
 
-      <div className="flex items-center gap-6 pt-2">
+      <div className="flex flex-wrap items-center gap-6 pt-2 border-t border-gray-100">
         <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-700">
           <input
             type="checkbox"
@@ -166,7 +200,22 @@ export default function AssignmentForm({ initialData = null, isEditing = false }
             }
             className="w-4 h-4 text-blue-600 rounded border-gray-300"
           />
-          Allow Resubmission
+          Allow Resubmissions
+        </label>
+
+        <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={formData.enableAiGrading}
+            onChange={(e) =>
+              setFormData({ ...formData, enableAiGrading: e.target.checked })
+            }
+            className="w-4 h-4 text-purple-600 rounded border-gray-300"
+          />
+          <span className="flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            Enable HITL AI Draft Assistance
+          </span>
         </label>
 
         <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-700">

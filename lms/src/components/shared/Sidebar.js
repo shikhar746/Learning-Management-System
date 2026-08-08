@@ -13,6 +13,7 @@ const studentLinks = [
 
 const adminLinks = [
   { href: "/admin", label: "Analytics Overview", icon: "📊" },
+  { href: "/admin/owner", label: "Owner Control Panel", icon: "👑" },
   { href: "/admin/workshops", label: "Workshop Cohorts", icon: "🏫" },
   { href: "/admin/assignments", label: "Assignment Management", icon: "📝" },
   { href: "/admin/tutorials", label: "Tutorials", icon: "📚" },

@@ -5,13 +5,16 @@ import { auth } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(req) {
   try {
     const session = await auth()
     const isAdminOrOwner =
       session?.user?.role === "ADMIN" || session?.user?.role === "OWNER"
 
-    const assignments = await getAssignments(isAdminOrOwner)
+    const { searchParams } = new URL(req.url)
+    const workshopId = searchParams.get("workshopId")
+
+    const assignments = await getAssignments(isAdminOrOwner, workshopId)
     return NextResponse.json(assignments)
   } catch (error) {
     console.error("Fetch assignments error:", error)
