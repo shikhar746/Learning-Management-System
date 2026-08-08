@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import FileUpload from "@/components/shared/FileUpload"
-import { AlertCircle, Loader2, GitBranch, ExternalLink, FileText, CheckCircle2 } from "lucide-react"
+import { AlertCircle, Loader2, GitBranch, ExternalLink, FileText, CheckCircle2, Video } from "lucide-react"
 
 export default function SubmissionModal({ assignment, previousSubmissions = [], onSubmitted }) {
   const [loading, setLoading] = useState(false)
@@ -15,6 +15,7 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
   const [formData, setFormData] = useState({
     repoUrl: "",
     deploymentUrl: "",
+    driveUrl: "",
     branch: "main",
     fileUrls: [],
     comments: "",
@@ -125,6 +126,20 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
             placeholder="https://my-app.vercel.app"
             value={formData.deploymentUrl}
             onChange={(e) => setFormData({ ...formData, deploymentUrl: e.target.value })}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="driveUrl" className="flex items-center gap-1.5">
+            <Video className="w-4 h-4 text-purple-500" />
+            Google Drive / Video Demo Link (Optional)
+          </Label>
+          <Input
+            id="driveUrl"
+            type="url"
+            placeholder="https://drive.google.com/... or Loom / YouTube link"
+            value={formData.driveUrl}
+            onChange={(e) => setFormData({ ...formData, driveUrl: e.target.value })}
           />
         </div>
 

@@ -1,72 +1,47 @@
 import { NextResponse } from "next/server"
-import { createSubmissionSchema } from "@/lib/validations/submission"
-import { getSubmissions, createOrVersionSubmission } from "@/services/submissionService"
 import { auth } from "@/lib/auth"
-
-export const dynamic = "force-dynamic"
+import { createSubmissionSchema } from "@/lib/validations/submission"
+import { createSubmission, getSubmissionsForAssignment } from "@/services/submissionService"
 
 export async function GET(req) {
   try {
     const session = await auth()
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { searchParams } = new URL(req.url)
     const assignmentId = searchParams.get("assignmentId")
 
-    const isAdminOrOwner =
-      session.user.role === "ADMIN" || session.user.role === "OWNER"
+    if (!assignmentId) {
+      return NextResponse.json({ error: "assignmentId parameter is required" }, { status: 400 })
+    }
 
-    const submissions = await getSubmissions({
-      assignmentId,
-      userId: session.user.id,
-      isAdminOrOwner,
-    })
-
-    return NextResponse.json(submissions)
+    const submissions = await getSubmissionsForAssignment(assignmentId)
+    return NextResponse.json({ submissions })
   } catch (error) {
-    console.error("Fetch submissions error:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
+    console.error("GET /api/submissions error:", error)
+    return NextResponse.json({ error: "Failed to fetch submissions" }, { status: 500 })
   }
 }
 
 export async function POST(req) {
   try {
     const session = await auth()
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const body = await req.json()
-    const result = createSubmissionSchema.safeParse(body)
+    const validatedData = createSubmissionSchema.parse(body)
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error.errors[0].message },
-        { status: 400 }
-      )
-    }
-
-    const { repoUrl, deploymentUrl, fileUrls } = result.data
-
-    if (!repoUrl && !deploymentUrl && (!fileUrls || fileUrls.length === 0)) {
-      return NextResponse.json(
-        { error: "Provide at least a repository URL, deployment URL, or uploaded file" },
-        { status: 400 }
-      )
-    }
-
-    const submission = await createOrVersionSubmission(session.user.id, result.data)
+    const submission = await createSubmission(validatedData, session.user.id)
     return NextResponse.json(submission, { status: 201 })
   } catch (error) {
-    console.error("Create submission error:", error)
-    return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 400 }
-    )
+    if (error.name === "ZodError") {
+      return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+    }
+    console.error("POST /api/submissions error:", error)
+    return NextResponse.json({ error: error.message || "Failed to submit assignment" }, { status: 400 })
   }
 }

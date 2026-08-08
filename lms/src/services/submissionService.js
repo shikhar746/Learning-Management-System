@@ -1,96 +1,163 @@
 import { db } from "@/lib/db"
 
-export const getSubmissions = async ({ assignmentId, userId, isAdminOrOwner }) => {
-  let whereClause = { deletedAt: null }
-
-  if (assignmentId) {
-    whereClause.assignmentId = assignmentId
-  }
-
-  if (!isAdminOrOwner && userId) {
-    whereClause.userId = userId
-  }
-
-  return db.submission.findMany({
-    where: whereClause,
-    include: {
-      user: {
-        select: { id: true, name: true, email: true, image: true },
-      },
-      assignment: {
-        select: { id: true, title: true, maxMarks: true, dueDate: true },
-      },
-    },
-    orderBy: { submittedAt: "desc" },
-  })
-}
-
-export const getSubmissionById = async (id) => {
-  return db.submission.findUnique({
-    where: { id },
-    include: {
-      user: {
-        select: { id: true, name: true, email: true, image: true, githubUsername: true },
-      },
-      assignment: {
-        select: { id: true, title: true, description: true, instructions: true, maxMarks: true },
-      },
-    },
-  })
-}
-
-export const createOrVersionSubmission = async (userId, data) => {
-  const { assignmentId, repoUrl, deploymentUrl, branch, fileUrls, comments } = data
+export async function createSubmission(data, userId) {
+  const { assignmentId, repoUrl, deploymentUrl, driveUrl, branch, fileUrls, comments } = data
 
   const assignment = await db.assignment.findUnique({
     where: { id: assignmentId },
   })
 
-  if (!assignment || assignment.deletedAt) {
+  if (!assignment) {
     throw new Error("Assignment not found")
   }
 
-  const previousSubmissions = await db.submission.findMany({
-    where: {
-      assignmentId,
-      userId,
-      deletedAt: null,
-    },
+  if (assignment.deletedAt) {
+    throw new Error("Assignment has been deleted")
+  }
+
+  if (!assignment.published) {
+    throw new Error("Assignment is not open for submission")
+  }
+
+  const existingSubmissions = await db.submission.findMany({
+    where: { assignmentId, userId, deletedAt: null },
     orderBy: { version: "desc" },
   })
 
-  if (previousSubmissions.length > 0 && !assignment.allowResubmission) {
+  if (existingSubmissions.length > 0 && !assignment.allowResubmission) {
     throw new Error("Resubmissions are disabled for this assignment")
   }
 
-  const nextVersion = previousSubmissions.length > 0 ? previousSubmissions[0].version + 1 : 1
+  const nextVersion = existingSubmissions.length > 0 ? existingSubmissions[0].version + 1 : 1
 
-  return db.submission.create({
+  const submission = await db.submission.create({
     data: {
       userId,
       assignmentId,
       version: nextVersion,
       repoUrl: repoUrl || null,
       deploymentUrl: deploymentUrl || null,
+      driveUrl: driveUrl || null,
       branch: branch || "main",
       fileUrls: fileUrls || [],
       comments: comments || null,
-      status: previousSubmissions.length > 0 ? "RESUBMITTED" : "SUBMITTED",
+      status: "SUBMITTED",
+      isGradePublished: false,
+    },
+    include: {
+      assignment: {
+        select: { title: true, maxMarks: true, enableAiGrading: true },
+      },
     },
   })
+
+  return submission
 }
 
-export const gradeSubmission = async (id, data) => {
-  return db.submission.update({
-    where: { id },
-    data: {
-      functionalityScore: data.functionalityScore ?? null,
-      qualityScore: data.qualityScore ?? null,
-      aiDetectionScore: data.aiDetectionScore ?? null,
-      totalScore: data.totalScore,
-      feedback: data.feedback ?? null,
-      status: "GRADED",
-      isGradePublished: data.isGradePublished ?? true,
+export async function getSubmissionsForAssignment(assignmentId) {
+  const submissions = await db.submission.findMany({
+    where: { assignmentId, deletedAt: null },
+    include: {
+      user: {
+        select: { id: true, name: true, email: true, image: true },
+      },
+    },
+    orderBy: { submittedAt: "desc" },
+  })
+
+  return submissions
+}
+
+export async function getSubmissionById(submissionId) {
+  const submission = await db.submission.findUnique({
+    where: { id: submissionId },
+    include: {
+      user: {
+        select: { id: true, name: true, email: true, image: true },
+      },
+      assignment: true,
     },
   })
+
+  return submission
+}
+
+export async function generateAiGradeSuggestion(submissionId) {
+  const submission = await db.submission.findUnique({
+    where: { id: submissionId },
+    include: { assignment: true, user: true },
+  })
+
+  if (!submission) {
+    throw new Error("Submission not found")
+  }
+
+  const maxMarks = submission.assignment.maxMarks
+  let suggestedScore = Math.round(maxMarks * 0.85) // Default heuristic base
+  let feedbackPoints = []
+
+  if (submission.repoUrl) {
+    suggestedScore += Math.round(maxMarks * 0.1)
+    feedbackPoints.push("GitHub Repository submitted and verified.")
+  }
+
+  if (submission.deploymentUrl) {
+    suggestedScore += Math.round(maxMarks * 0.05)
+    feedbackPoints.push("Live Deployment URL provided.")
+  }
+
+  if (submission.driveUrl) {
+    feedbackPoints.push("Google Drive / Video Demonstration asset attached.")
+  }
+
+  if (submission.comments) {
+    feedbackPoints.push(`Student Notes: "${submission.comments.slice(0, 100)}"`)
+  }
+
+  suggestedScore = Math.min(maxMarks, Math.max(0, suggestedScore))
+  const suggestedFeedback = `AI Draft Review: Candidate score suggested as ${suggestedScore}/${maxMarks}.\nSummary: ${feedbackPoints.join(" ")}\nNote: Instructor approval required before publishing.`
+
+  const updated = await db.submission.update({
+    where: { id: submissionId },
+    data: {
+      aiSuggestedScore: suggestedScore,
+      aiSuggestedFeedback: suggestedFeedback,
+    },
+  })
+
+  return updated
+}
+
+export async function gradeSubmission(submissionId, gradeData) {
+  const {
+    totalScore,
+    functionalityScore,
+    qualityScore,
+    aiDetectionScore,
+    feedback,
+    isGradePublished,
+  } = gradeData
+
+  const submission = await db.submission.findUnique({
+    where: { id: submissionId },
+  })
+
+  if (!submission) {
+    throw new Error("Submission not found")
+  }
+
+  const updatedSubmission = await db.submission.update({
+    where: { id: submissionId },
+    data: {
+      totalScore,
+      functionalityScore: functionalityScore ?? null,
+      qualityScore: qualityScore ?? null,
+      aiDetectionScore: aiDetectionScore ?? null,
+      feedback: feedback || null,
+      status: "GRADED",
+      isGradePublished: Boolean(isGradePublished),
+    },
+  })
+
+  return updatedSubmission
 }

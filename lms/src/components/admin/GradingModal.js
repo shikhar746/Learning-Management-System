@@ -4,21 +4,49 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, Loader2, CheckCircle2, Award, Bot, Code, ExternalLink, GitBranch, FileText } from "lucide-react"
+import { AlertCircle, Loader2, CheckCircle2, Award, Bot, Code, ExternalLink, GitBranch, FileText, Video, Sparkles } from "lucide-react"
 
 export default function GradingModal({ submission, assignment, onGraded }) {
   const [loading, setLoading] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
   const [formData, setFormData] = useState({
-    totalScore: submission.totalScore ?? "",
+    totalScore: submission.totalScore ?? submission.aiSuggestedScore ?? "",
     functionalityScore: submission.functionalityScore ?? "",
     qualityScore: submission.qualityScore ?? "",
     aiDetectionScore: submission.aiDetectionScore ?? "",
-    feedback: submission.feedback || "",
+    feedback: submission.feedback || submission.aiSuggestedFeedback || "",
     isGradePublished: submission.isGradePublished ?? true,
   })
+
+  const handleGenerateAiSuggestion = async () => {
+    setAiLoading(true)
+    setError("")
+
+    try {
+      const res = await fetch(`/api/admin/submissions/${submission.id}/ai-suggest`, {
+        method: "POST",
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate AI suggestion")
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        totalScore: data.aiSuggestedScore ?? prev.totalScore,
+        feedback: data.aiSuggestedFeedback ?? prev.feedback,
+      }))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -91,6 +119,15 @@ export default function GradingModal({ submission, assignment, onGraded }) {
             </a>
           </div>
         )}
+        {submission.driveUrl && (
+          <div className="flex items-center gap-2">
+            <Video className="w-4 h-4 text-purple-500" />
+            <span className="font-medium text-gray-600">Drive / Video Demo:</span>
+            <a href={submission.driveUrl} target="_blank" rel="noreferrer" className="text-purple-600 underline truncate hover:text-purple-800">
+              {submission.driveUrl}
+            </a>
+          </div>
+        )}
         {submission.fileUrls?.length > 0 && (
           <div className="space-y-1">
             <span className="font-medium text-gray-600">Attachments:</span>
@@ -109,6 +146,27 @@ export default function GradingModal({ submission, assignment, onGraded }) {
             Student Comment: "{submission.comments}"
           </div>
         )}
+      </div>
+
+      <div className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg p-3.5 text-xs">
+        <div className="space-y-0.5">
+          <span className="font-semibold text-purple-900 flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            Human-in-the-Loop AI Grading Assist
+          </span>
+          <p className="text-purple-700">Pre-fill marks and constructive draft feedback for instructor approval.</p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={aiLoading}
+          onClick={handleGenerateAiSuggestion}
+          className="border-purple-300 text-purple-800 hover:bg-purple-100"
+        >
+          {aiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Bot className="w-3.5 h-3.5 mr-1.5 text-purple-600" />}
+          Generate AI Draft
+        </Button>
       </div>
 
       {error && (
