@@ -14,6 +14,13 @@ const studentLinks = [
 
 const adminLinks = [
   { href: "/admin", label: "Analytics Overview", icon: BarChart3 },
+  { href: "/admin/workshops", label: "Workshop Cohorts", icon: GraduationCap },
+  { href: "/admin/assignments", label: "Assignment Management", icon: FileText },
+  { href: "/admin/users", label: "Users", icon: Users },
+]
+
+const ownerLinks = [
+  { href: "/admin", label: "Analytics Overview", icon: BarChart3 },
   { href: "/admin/owner", label: "Owner Control Panel", icon: Crown },
   { href: "/admin/workshops", label: "Workshop Cohorts", icon: GraduationCap },
   { href: "/admin/assignments", label: "Assignment Management", icon: FileText },
@@ -22,7 +29,7 @@ const adminLinks = [
 
 export default function Sidebar({ role, user }) {
   const pathname = usePathname()
-  const links = role === "admin" ? adminLinks : studentLinks
+  const links = role === "owner" ? ownerLinks : role === "admin" ? adminLinks : studentLinks
 
   return (
     <aside className="w-64 h-screen sticky top-0 shrink-0 overflow-hidden bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-colors select-none">
