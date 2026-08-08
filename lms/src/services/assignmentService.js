@@ -5,26 +5,50 @@ export const getAssignments = async (user = null, workshopId = null) => {
   const userRole = user?.role
   const userId = user?.id
 
-  // If student or guest, only return published assignments
-  if (!userRole || userRole === "STUDENT") {
+  // RULE 2: Student -> Assignment visibility is strictly gated by workshop registration.
+  // Student sees assignment IF student.registered_workshops CONTAINS assignment.workshopId.
+  // Otherwise, assignment does not appear in that student's assignments list at all (fully absent).
+  if (userRole === "STUDENT" && userId) {
     whereClause.published = true
-  }
-
-  // If explicit workshopId requested
-  if (workshopId) {
-    whereClause.workshopId = workshopId
-  } else if (userRole === "ADMIN" && userId) {
-    // Scoped for regular Admins: only return assignments from their own workshops
-    const adminRoles = await db.userRole.findMany({
-      where: { userId, role: { in: ["ADMIN", "OWNER"] } },
+    const studentRoles = await db.userRole.findMany({
+      where: { userId, role: "STUDENT" },
       select: { workshopId: true },
     })
-    const adminWorkshopIds = adminRoles.map((r) => r.workshopId)
+    const registeredWorkshopIds = studentRoles.map((r) => r.workshopId)
 
-    whereClause.OR = [
-      { createdById: userId },
-      { workshopId: { in: adminWorkshopIds } },
-    ]
+    if (workshopId) {
+      if (!registeredWorkshopIds.includes(workshopId)) {
+        return [] // Fully absent if student is not registered in this workshop
+      }
+      whereClause.workshopId = workshopId
+    } else {
+      whereClause.workshopId = { in: registeredWorkshopIds }
+    }
+  } else if (!userRole) {
+    // Unauthenticated guest: only published assignments
+    whereClause.published = true
+    if (workshopId) whereClause.workshopId = workshopId
+  } else if (userRole === "ADMIN" && userId) {
+    // RULE 3 & RULE 4: Admin assigned workshops (many-to-many)
+    if (workshopId) {
+      whereClause.workshopId = workshopId
+    } else {
+      const adminRoles = await db.userRole.findMany({
+        where: { userId, role: { in: ["ADMIN", "OWNER"] } },
+        select: { workshopId: true },
+      })
+      const adminWorkshopIds = adminRoles.map((r) => r.workshopId)
+
+      whereClause.OR = [
+        { createdById: userId },
+        { workshopId: { in: adminWorkshopIds } },
+      ]
+    }
+  } else if (userRole === "OWNER") {
+    // RULE 5: Owner can view all assignments across all workshops
+    if (workshopId) {
+      whereClause.workshopId = workshopId
+    }
   }
 
   return db.assignment.findMany({
@@ -62,6 +86,18 @@ export const getAssignmentById = async (id, userId, isAdminOrOwner = false) => {
 
   if (!assignment || assignment.deletedAt) return null
   if (!assignment.published && !isAdminOrOwner) return null
+
+  // Enforce RULE 2: If student is not registered in this assignment's workshop, return null
+  if (userId && !isAdminOrOwner && assignment.workshopId) {
+    const isRegistered = await db.userRole.findFirst({
+      where: {
+        userId,
+        workshopId: assignment.workshopId,
+        role: "STUDENT",
+      },
+    })
+    if (!isRegistered) return null
+  }
 
   let userSubmissions = []
   if (userId && !isAdminOrOwner) {
