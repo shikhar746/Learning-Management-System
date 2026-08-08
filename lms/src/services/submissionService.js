@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { evaluateSubmissionWithByok } from "@/services/aiGradingService"
+import { sendGradeNotification } from "@/services/notificationService"
 
 export async function createSubmission(data, userId) {
   const { assignmentId, repoUrl, deploymentUrl, driveUrl, branch, fileUrls, comments } = data
@@ -99,6 +100,7 @@ export async function gradeSubmission(submissionId, gradeData) {
 
   const submission = await db.submission.findUnique({
     where: { id: submissionId },
+    include: { user: true, assignment: true },
   })
 
   if (!submission) {
@@ -116,7 +118,17 @@ export async function gradeSubmission(submissionId, gradeData) {
       status: "GRADED",
       isGradePublished: Boolean(isGradePublished),
     },
+    include: {
+      user: { select: { email: true, name: true } },
+      assignment: { select: { title: true, maxMarks: true } },
+    },
   })
+
+  if (Boolean(isGradePublished) && updatedSubmission.user?.email) {
+    sendGradeNotification(updatedSubmission, updatedSubmission.user.email).catch((err) =>
+      console.error("Email notification error:", err)
+    )
+  }
 
   return updatedSubmission
 }
