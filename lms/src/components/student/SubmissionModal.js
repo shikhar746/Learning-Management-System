@@ -27,6 +27,19 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
     setError("")
     setSuccess(false)
 
+    // Client-Side Empty Submission Check
+    const hasRepo = Boolean(formData.repoUrl && formData.repoUrl.trim().length > 0)
+    const hasDemo = Boolean(formData.deploymentUrl && formData.deploymentUrl.trim().length > 0)
+    const hasDrive = Boolean(formData.driveUrl && formData.driveUrl.trim().length > 0)
+    const hasFile = Boolean(formData.fileUrls && formData.fileUrls.length > 0)
+    const hasNotes = Boolean(formData.comments && formData.comments.trim().length > 0)
+
+    if (!hasRepo && !hasDemo && !hasDrive && !hasFile && !hasNotes) {
+      setError("Please provide at least one submission artifact (GitHub URL, Live Demo link, Drive Video link, file attachment, or notes).")
+      setLoading(false)
+      return
+    }
+
     try {
       const res = await fetch("/api/submissions", {
         method: "POST",
@@ -44,7 +57,7 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
       }
 
       setSuccess(true)
-      setFormData({ repoUrl: "", deploymentUrl: "", branch: "main", fileUrls: [], comments: "" })
+      setFormData({ repoUrl: "", deploymentUrl: "", driveUrl: "", branch: "main", fileUrls: [], comments: "" })
       if (onSubmitted) onSubmitted(data)
     } catch (err) {
       setError(err.message)
@@ -56,28 +69,28 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
   const latestSubmission = previousSubmissions[0]
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-6">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">Submit Work</h3>
-        <p className="text-xs text-gray-500 mt-1">
-          Provide your GitHub Repository URL, Live Deployment link, or upload attachment files.
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Submit Work</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Provide your GitHub Repository URL, Live Deployment link, Google Drive video asset, or upload attachment files.
         </p>
       </div>
 
       {previousSubmissions.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-blue-900">
+        <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-blue-900 dark:text-blue-200">
             <span>Current Status: {latestSubmission.status} (v{latestSubmission.version})</span>
             <span>Submitted: {new Date(latestSubmission.submittedAt).toLocaleDateString()}</span>
           </div>
 
           {latestSubmission.isGradePublished && latestSubmission.totalScore !== null && (
-            <div className="mt-2 pt-2 border-t border-blue-200">
-              <span className="text-sm font-bold text-green-700">
+            <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-900">
+              <span className="text-sm font-bold text-green-700 dark:text-green-400">
                 Grade: {latestSubmission.totalScore} / {assignment.maxMarks}
               </span>
               {latestSubmission.feedback && (
-                <p className="text-xs text-gray-700 italic mt-1">
+                <p className="text-xs text-gray-700 dark:text-gray-300 italic mt-1">
                   "{latestSubmission.feedback}"
                 </p>
               )}
@@ -87,22 +100,22 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+        <div className="bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 text-green-800 dark:text-green-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
           <span>Submission recorded successfully!</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="repoUrl" className="flex items-center gap-1.5">
+          <Label htmlFor="repoUrl" className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
             <GitBranch className="w-4 h-4 text-gray-500" />
             GitHub Repository URL
           </Label>
@@ -116,7 +129,7 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="deploymentUrl" className="flex items-center gap-1.5">
+          <Label htmlFor="deploymentUrl" className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
             <ExternalLink className="w-4 h-4 text-gray-500" />
             Live Deployment URL (Optional)
           </Label>
@@ -130,7 +143,7 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="driveUrl" className="flex items-center gap-1.5">
+          <Label htmlFor="driveUrl" className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
             <Video className="w-4 h-4 text-purple-500" />
             Google Drive / Video Demo Link (Optional)
           </Label>
@@ -156,7 +169,7 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
         {formData.fileUrls.length > 0 && (
           <div className="text-xs text-gray-500 space-y-1">
             {formData.fileUrls.map((url, idx) => (
-              <div key={idx} className="flex items-center gap-1.5 text-blue-600 truncate">
+              <div key={idx} className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 truncate">
                 <FileText className="w-3.5 h-3.5" />
                 <a href={url} target="_blank" rel="noreferrer" className="underline truncate">
                   {url}
@@ -167,11 +180,11 @@ export default function SubmissionModal({ assignment, previousSubmissions = [], 
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="comments">Additional Notes / Comments</Label>
+          <Label htmlFor="comments" className="text-gray-700 dark:text-gray-300">Additional Notes / Comments</Label>
           <textarea
             id="comments"
             rows={3}
-            className="w-full rounded-md border border-gray-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
             placeholder="Any comments for the evaluator..."
             value={formData.comments}
             onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
