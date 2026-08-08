@@ -9,7 +9,15 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (session.user.role !== "OWNER") {
+    // Verify fresh role from DB to prevent stale JWT session token blocks
+    const dbUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    })
+
+    const effectiveRole = dbUser?.role || session.user.role
+
+    if (effectiveRole !== "OWNER" && effectiveRole !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden: Super-Admin / Owner access required" }, { status: 403 })
     }
 
