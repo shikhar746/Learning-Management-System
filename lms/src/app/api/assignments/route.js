@@ -2,19 +2,27 @@ import { NextResponse } from "next/server"
 import { createAssignmentSchema } from "@/lib/validations/assignment"
 import { getAssignments, createAssignment } from "@/services/assignmentService"
 import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(req) {
   try {
     const session = await auth()
-    const isAdminOrOwner =
-      session?.user?.role === "ADMIN" || session?.user?.role === "OWNER"
-
     const { searchParams } = new URL(req.url)
     const workshopId = searchParams.get("workshopId")
 
-    const assignments = await getAssignments(isAdminOrOwner, workshopId)
+    let userObject = null
+
+    if (session?.user) {
+      const dbUser = await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, role: true },
+      })
+      userObject = dbUser || session.user
+    }
+
+    const assignments = await getAssignments(userObject, workshopId)
     return NextResponse.json(assignments)
   } catch (error) {
     console.error("Fetch assignments error:", error)
@@ -28,11 +36,18 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const session = await auth()
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (session.user.role !== "ADMIN" && session.user.role !== "OWNER") {
+    const dbUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    })
+
+    const role = dbUser?.role || session.user.role
+
+    if (role !== "ADMIN" && role !== "OWNER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

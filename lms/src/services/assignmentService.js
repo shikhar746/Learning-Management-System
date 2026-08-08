@@ -1,14 +1,30 @@
 import { db } from "@/lib/db"
 
-export const getAssignments = async (isAdminOrOwner = false, workshopId = null) => {
+export const getAssignments = async (user = null, workshopId = null) => {
   const whereClause = { deletedAt: null }
+  const userRole = user?.role
+  const userId = user?.id
 
-  if (!isAdminOrOwner) {
+  // If student or guest, only return published assignments
+  if (!userRole || userRole === "STUDENT") {
     whereClause.published = true
   }
 
+  // If explicit workshopId requested
   if (workshopId) {
     whereClause.workshopId = workshopId
+  } else if (userRole === "ADMIN" && userId) {
+    // Scoped for regular Admins: only return assignments from their own workshops
+    const adminRoles = await db.userRole.findMany({
+      where: { userId, role: { in: ["ADMIN", "OWNER"] } },
+      select: { workshopId: true },
+    })
+    const adminWorkshopIds = adminRoles.map((r) => r.workshopId)
+
+    whereClause.OR = [
+      { createdById: userId },
+      { workshopId: { in: adminWorkshopIds } },
+    ]
   }
 
   return db.assignment.findMany({

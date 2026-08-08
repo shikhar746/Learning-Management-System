@@ -1,8 +1,65 @@
 import { db } from "@/lib/db"
 import { getOrSetCache } from "@/lib/redis"
 
-export const getAdminAnalytics = async () => {
-  return getOrSetCache("analytics:admin", 60, async () => {
+export const getAdminAnalytics = async (userId, userRole = "ADMIN") => {
+  const cacheKey = userRole === "OWNER" ? "analytics:admin:owner" : `analytics:admin:${userId}`
+
+  return getOrSetCache(cacheKey, 30, async () => {
+    let workshopFilter = {}
+
+    // If regular ADMIN (not OWNER), scope data strictly to their own workshops
+    if (userRole !== "OWNER" && userId) {
+      const adminRoles = await db.userRole.findMany({
+        where: { userId, role: { in: ["ADMIN", "OWNER"] } },
+        select: { workshopId: true },
+      })
+
+      const adminWorkshopIds = adminRoles.map((r) => r.workshopId)
+
+      workshopFilter = {
+        OR: [
+          { createdById: userId },
+          { id: { in: adminWorkshopIds } },
+          { workshopId: { in: adminWorkshopIds } },
+        ],
+      }
+    }
+
+    // Build scoped query conditions
+    const assignmentWhere = {
+      deletedAt: null,
+      ...(userRole !== "OWNER" && userId
+        ? {
+            OR: [
+              { createdById: userId },
+              { workshopId: { in: (await db.userRole.findMany({ where: { userId, role: { in: ["ADMIN", "OWNER"] } }, select: { workshopId: true } })).map((r) => r.workshopId) } },
+            ],
+          }
+        : {}),
+    }
+
+    const submissionWhere = {
+      deletedAt: null,
+      ...(userRole !== "OWNER" && userId
+        ? {
+            assignment: assignmentWhere,
+          }
+        : {}),
+    }
+
+    const studentWhere = userRole !== "OWNER" && userId
+      ? {
+          role: "STUDENT",
+          workshopRoles: {
+            some: {
+              workshopId: {
+                in: (await db.userRole.findMany({ where: { userId, role: { in: ["ADMIN", "OWNER"] } }, select: { workshopId: true } })).map((r) => r.workshopId),
+              },
+            },
+          },
+        }
+      : { role: "STUDENT" }
+
     const [
       totalStudents,
       totalAssignments,
@@ -11,14 +68,14 @@ export const getAdminAnalytics = async () => {
       assignmentsWithSubmissions,
       upcomingDeadlines,
     ] = await Promise.all([
-      db.user.count({ where: { role: "STUDENT" } }),
-      db.assignment.count({ where: { deletedAt: null } }),
-      db.submission.count({ where: { deletedAt: null } }),
+      db.user.count({ where: studentWhere }),
+      db.assignment.count({ where: assignmentWhere }),
+      db.submission.count({ where: submissionWhere }),
       db.submission.count({
-        where: { status: "SUBMITTED", deletedAt: null },
+        where: { ...submissionWhere, status: "SUBMITTED" },
       }),
       db.assignment.findMany({
-        where: { published: true, deletedAt: null },
+        where: { ...assignmentWhere, published: true },
         select: {
           id: true,
           title: true,
@@ -32,8 +89,8 @@ export const getAdminAnalytics = async () => {
       }),
       db.assignment.findMany({
         where: {
+          ...assignmentWhere,
           published: true,
-          deletedAt: null,
           dueDate: { gte: new Date() },
         },
         orderBy: { dueDate: "asc" },

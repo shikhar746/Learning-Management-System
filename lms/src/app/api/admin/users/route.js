@@ -9,12 +9,42 @@ export async function GET(req) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const currentRole = session.user.role
+    const dbUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    })
+
+    const currentRole = dbUser?.role || session.user.role
     if (currentRole !== "ADMIN" && currentRole !== "OWNER") {
       return NextResponse.json({ error: "Forbidden: Admin or Owner access required" }, { status: 403 })
     }
 
+    let userWhere = {}
+
+    // Regular Admins only see students enrolled in their own workshops/cohorts
+    if (currentRole !== "OWNER") {
+      const adminRoles = await db.userRole.findMany({
+        where: { userId: session.user.id, role: { in: ["ADMIN", "OWNER"] } },
+        select: { workshopId: true },
+      })
+      const adminWorkshopIds = adminRoles.map((r) => r.workshopId)
+
+      userWhere = {
+        OR: [
+          { id: session.user.id }, // Self
+          {
+            workshopRoles: {
+              some: {
+                workshopId: { in: adminWorkshopIds },
+              },
+            },
+          },
+        ],
+      }
+    }
+
     const users = await db.user.findMany({
+      where: userWhere,
       select: {
         id: true,
         name: true,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
 import { createWorkshopSchema } from "@/lib/validations/workshop"
 import { createWorkshop, getWorkshopsForUser } from "@/services/workshopService"
 
@@ -10,7 +11,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const workshops = await getWorkshopsForUser(session.user.id, session.user.role)
+    const dbUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    })
+
+    const role = dbUser?.role || session.user.role
+    const workshops = await getWorkshopsForUser(session.user.id, role)
     return NextResponse.json({ workshops })
   } catch (error) {
     console.error("GET /api/workshops error:", error)
