@@ -20,12 +20,21 @@ export async function createWorkshop({ name, description, code, validUntil, crea
     isDuplicate = await db.workshop.findUnique({ where: { code: inviteCode } })
   }
 
+  // Safely parse validUntil date
+  let parsedValidUntil = null
+  if (validUntil && typeof validUntil === "string" && validUntil.trim().length > 0) {
+    const d = new Date(validUntil)
+    if (!isNaN(d.getTime())) {
+      parsedValidUntil = d
+    }
+  }
+
   const workshop = await db.workshop.create({
     data: {
       name,
       description: description || null,
       code: inviteCode,
-      validUntil: validUntil ? new Date(validUntil) : null,
+      validUntil: parsedValidUntil,
       aiProvider: aiProvider || "DEFAULT",
       aiApiKey: aiApiKey || null,
       createdById,
@@ -42,7 +51,7 @@ export async function createWorkshop({ name, description, code, validUntil, crea
   })
 
   // Purge analytics cache so new workshop displays immediately
-  invalidateCachePattern("analytics:")
+  await invalidateCachePattern("analytics:")
 
   return workshop
 }
@@ -195,7 +204,7 @@ export async function joinWorkshopByCode(code, userId) {
   })
 
   // Purge analytics cache on new enrollment
-  invalidateCachePattern("analytics:")
+  await invalidateCachePattern("analytics:")
 
   return { workshop, alreadyJoined: false, role: userRole.role }
 }
@@ -253,7 +262,8 @@ export async function inviteAdminToWorkshop(workshopId, email, inviterUserId) {
 export async function updateWorkshop(workshopId, data) {
   const updatedData = { ...data }
   if (data.validUntil) {
-    updatedData.validUntil = new Date(data.validUntil)
+    const d = new Date(data.validUntil)
+    updatedData.validUntil = !isNaN(d.getTime()) ? d : null
   }
 
   const res = await db.workshop.update({
@@ -261,7 +271,7 @@ export async function updateWorkshop(workshopId, data) {
     data: updatedData,
   })
 
-  invalidateCachePattern("analytics:")
+  await invalidateCachePattern("analytics:")
   return res
 }
 
@@ -269,6 +279,6 @@ export async function deleteWorkshop(workshopId) {
   const res = await db.workshop.delete({
     where: { id: workshopId },
   })
-  invalidateCachePattern("analytics:")
+  await invalidateCachePattern("analytics:")
   return res
 }
