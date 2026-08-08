@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
 import { createSubmissionSchema } from "@/lib/validations/submission"
 import { createSubmission, getSubmissionsForAssignment } from "@/services/submissionService"
 
@@ -13,12 +14,22 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url)
     const assignmentId = searchParams.get("assignmentId")
 
-    if (!assignmentId) {
-      return NextResponse.json({ error: "assignmentId parameter is required" }, { status: 400 })
+    // If assignmentId is provided, return submissions for that specific assignment
+    if (assignmentId) {
+      const submissions = await getSubmissionsForAssignment(assignmentId)
+      return NextResponse.json({ submissions })
     }
 
-    const submissions = await getSubmissionsForAssignment(assignmentId)
-    return NextResponse.json({ submissions })
+    // Otherwise, return all submissions for the current student (used by /student/assignments page)
+    const submissions = await db.submission.findMany({
+      where: {
+        userId: session.user.id,
+        deletedAt: null,
+      },
+      orderBy: { version: "desc" },
+    })
+
+    return NextResponse.json(submissions)
   } catch (error) {
     console.error("GET /api/submissions error:", error)
     return NextResponse.json({ error: "Failed to fetch submissions" }, { status: 500 })
