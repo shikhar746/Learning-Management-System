@@ -335,13 +335,7 @@ npx prisma studio
 
 ### Seed Accounts (`prisma/seed.js`)
 
-| Email | Password | Role |
-| :--- | :--- | :--- |
-| `owner@lms.com` | `password123` | `OWNER` |
-| `admin@lms.com` | `password123` | `ADMIN` |
-| `student@lms.com` | `password123` | `STUDENT` |
-
-A sample workshop **"React & Full-Stack Web Dev Cohort #1"** (code: **`WEB2026`**, valid for 30 days from seed date) is created with the admin and student pre-enrolled. One published assignment with AI grading enabled, a pre-seeded student submission (with AI suggested score of 88), a forum topic with two approved posts, and a default certificate template are also created.
+Seeded test accounts (`OWNER`, `ADMIN`, `STUDENT`) and a sample workshop (`WEB2026`) with rubric-equipped assignments are created via `npx prisma db seed`. Refer to `prisma/seed.js` for default seed configuration details.
 
 ---
 
