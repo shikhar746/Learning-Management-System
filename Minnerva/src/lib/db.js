@@ -4,6 +4,8 @@ const globalForPrisma = globalThis
 
 const baseClient = globalForPrisma.prisma ?? new PrismaClient()
 
+export const rawDb = baseClient
+
 /**
  * Extended Prisma Client providing automatic soft-delete filtering (deletedAt: null)
  * on read queries across Assignment and Submission models.

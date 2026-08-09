@@ -3,13 +3,13 @@ import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import bcrypt from "bcryptjs"
-import { db } from "@/lib/db"
+import { rawDb } from "@/lib/db"
 import { authConfig } from "@/lib/auth.config"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "minnerva_default_auth_secret_32_bytes_long!!",
-  adapter: PrismaAdapter(db),
+  adapter: PrismaAdapter(rawDb),
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID || "placeholder_google_client_id",
@@ -26,7 +26,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null
         }
 
-        const user = await db.user.findUnique({
+        const user = await rawDb.user.findUnique({
           where: { email: credentials.email },
         })
 
