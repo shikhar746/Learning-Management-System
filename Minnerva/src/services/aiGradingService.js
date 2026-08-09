@@ -118,8 +118,7 @@ export async function evaluateSubmissionWithByok(submissionId) {
   const maxMarks = assignment?.maxMarks ?? 100
 
   const DEFAULT_SYSTEM_AI_PROVIDER = "GROQ"
-  const DEFAULT_SYSTEM_AI_API_KEY =
-    process.env.GROQ_API_KEY || "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"
+  const DEFAULT_SYSTEM_AI_API_KEY = process.env.GROQ_API_KEY || ""
 
   const provider =
     workshop?.aiProvider && workshop.aiProvider !== "DEFAULT"

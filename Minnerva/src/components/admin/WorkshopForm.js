@@ -143,7 +143,7 @@ export default function WorkshopForm({ initialData = null, isEditing = false }) 
           <Input
             id="aiApiKey"
             type="password"
-            placeholder="e.g. gsk_... or AIza... or sk-..."
+            placeholder="e.g. key_... or AIza... or sk-..."
             value={formData.aiApiKey}
             onChange={(e) => setFormData({ ...formData, aiApiKey: e.target.value })}
           />

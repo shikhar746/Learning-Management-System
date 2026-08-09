@@ -5,7 +5,7 @@ import { sanitizeWorkshop } from "../src/services/workshopService.js"
 import { parseScoreToBasisPoints, formatScoreFromBasisPoints } from "../src/services/submissionService.js"
 
 test("Issue 1: AES-256-GCM Encryption & Decryption of aiApiKey at rest", () => {
-  const rawKey = "gsk_test_groq_api_key_123456789"
+  const rawKey = "test_key_groq_api_key_123456789"
 
   // 1. Encrypt key
   const encryptedKey = encrypt(rawKey)
@@ -27,7 +27,7 @@ test("Issue 1: Workshop Response Sanitization - Never expose aiApiKey", () => {
     name: "AI Systems Engineering",
     code: "AI101",
     aiProvider: "GROQ",
-    aiApiKey: "gsk_secret_key_should_never_be_sent_to_client",
+    aiApiKey: "test_secret_key_should_never_be_sent_to_client",
     createdAt: new Date(),
   }
 
