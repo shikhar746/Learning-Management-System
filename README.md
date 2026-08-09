@@ -1,11 +1,14 @@
 # 🎓 Minnerva — AI-Assisted Multi-Tenant Learning Management System
 
+🚀 **Live Deployment**: [https://learning-management-system-kappa-one.vercel.app](https://learning-management-system-kappa-one.vercel.app)
+
 **Minnerva** is a production-grade, multi-tenant Learning Management System built on Next.js 16 App Router. It delivers workshop-scoped cohort isolation, a **BYOK (Bring Your Own Key) AI grading engine** routing across 6 model providers, an automated forum content moderation pipeline (with optional OpenAI Moderation API integration), dynamic certificate generation, and a comprehensive two-level RBAC system — all in a unified, type-safe full-stack TypeScript/JS codebase.
 
 ---
 
 ## Badges
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://learning-management-system-kappa-one.vercel.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16.2.6-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.2.4-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.22.0-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
