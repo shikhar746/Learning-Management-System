@@ -42,6 +42,30 @@ export async function getCertificateTemplate(workshopId) {
   })
 }
 
+/**
+ * Inserts a Cloudinary text-overlay transformation into a template image URL so the
+ * participant's name is actually rendered into the delivered image, positioned using
+ * the template's configured nameX/nameY/fontSize.
+ */
+function buildCertificateImageUrl(baseTemplateUrl, name, template) {
+  const uploadMarker = "/image/upload/"
+  const markerIndex = baseTemplateUrl.indexOf(uploadMarker)
+  if (markerIndex === -1) {
+    // Not a Cloudinary delivery URL we know how to transform; serve the template as-is
+    return baseTemplateUrl
+  }
+
+  const nameX = template?.nameX ?? 300
+  const nameY = template?.nameY ?? 400
+  const fontSize = template?.fontSize ?? 36
+
+  const encodedText = encodeURIComponent(name)
+  const overlay = `l_text:Arial_${fontSize}_bold:${encodedText},co_rgb:1a1a1a/fl_layer_apply,g_north_west,x_${nameX},y_${nameY}`
+
+  const insertAt = markerIndex + uploadMarker.length
+  return `${baseTemplateUrl.slice(0, insertAt)}${overlay}/${baseTemplateUrl.slice(insertAt)}`
+}
+
 export async function issueCertificate({ workshopId, userId }) {
   const workshop = await db.workshop.findUnique({
     where: { id: workshopId },
@@ -63,10 +87,10 @@ export async function issueCertificate({ workshopId, userId }) {
     where: { workshopId },
   })
 
-  // Dynamic certificate URL embedding user name parameter
-  const encodedName = encodeURIComponent(user.name || user.email)
+  // Renders the participant's name directly into the certificate image via a Cloudinary
+  // text-overlay transformation, positioned using the template's nameX/nameY/fontSize.
   const baseTemplateUrl = template?.templateUrl || "https://res.cloudinary.com/dxeuly7xo/image/upload/v1/certificates/default_template.png"
-  const certificateUrl = `${baseTemplateUrl}?participantName=${encodedName}`
+  const certificateUrl = buildCertificateImageUrl(baseTemplateUrl, user.name || user.email, template)
 
   const existingCert = await db.certificate.findUnique({
     where: {
