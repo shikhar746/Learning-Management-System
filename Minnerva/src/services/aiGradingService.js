@@ -28,6 +28,28 @@ const FALLBACK_SCORE_RATIOS = {
  * Helper to fetch GitHub repo structure and code snippets for LLM inspection
  * Enforces strict SSRF protection, IP literal rejection, hostname allowlisting, and manual redirect handling.
  */
+const KEY_FILE_PATTERNS = [
+  /(^|\/)(server|index|app|main)\.(js|ts|mjs)$/i,
+  /(^|\/)(routes|controllers|models)\/[^/]+\.(js|ts)$/i,
+  /(^|\/)package\.json$/i,
+]
+const MAX_TREE_ENTRIES = 300
+const MAX_CODE_SNIPPET_BUDGET = 8000
+
+async function fetchRawFile(owner, repo, branch, path, headers) {
+  try {
+    const encodedPath = path.split("/").map(encodeURIComponent).join("/")
+    const res = await safeFetch(
+      `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${encodedPath}`,
+      { headers }
+    )
+    if (!res.ok) return null
+    return await res.text()
+  } catch {
+    return null
+  }
+}
+
 async function fetchGithubRepoContent(repoUrl) {
   if (!repoUrl || typeof repoUrl !== "string") return null
   try {
@@ -39,28 +61,45 @@ async function fetchGithubRepoContent(repoUrl) {
       Accept: "application/vnd.github.v3+json",
     }
 
-    // 2. Server-side URL construction from validated owner & repo tokens
-    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`
-    const contentsRes = await safeFetch(apiUrl, { headers })
-    if (!contentsRes.ok) return null
+    // 2. Resolve the default branch
+    const repoInfoRes = await safeFetch(`https://api.github.com/repos/${owner}/${repo}`, { headers })
+    if (!repoInfoRes.ok) return null
+    const repoInfo = await repoInfoRes.json()
+    const branch = repoInfo.default_branch || "main"
 
-    const items = await contentsRes.json()
-    if (!Array.isArray(items)) return null
+    // 3. Fetch the FULL recursive file tree so nested folders (e.g. client/, server/) are visible,
+    //    instead of only the repo root as before.
+    const treeRes = await safeFetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+      { headers }
+    )
+    if (!treeRes.ok) return null
+    const treeData = await treeRes.json()
+    const allFiles = Array.isArray(treeData.tree) ? treeData.tree.filter((item) => item.type === "blob") : []
 
-    const fileList = items.map((f) => `- ${f.name} (${f.type})`).slice(0, 20).join("\n")
+    const fileList = allFiles.slice(0, MAX_TREE_ENTRIES).map((f) => `- ${f.path}`).join("\n")
+    const truncatedNote = allFiles.length > MAX_TREE_ENTRIES ? ` (showing first ${MAX_TREE_ENTRIES})` : ""
+
     let codeSnippet = ""
 
-    const readmeFile = items.find((f) => f.name && typeof f.name === "string" && f.name.toLowerCase() === "readme.md")
-    if (readmeFile && readmeFile.download_url) {
-      // 3. Re-validate download_url against SSRF allowlist using safeFetch
-      const readmeRes = await safeFetch(readmeFile.download_url, { headers })
-      if (readmeRes.ok) {
-        const text = await readmeRes.text()
-        codeSnippet += `\n--- README.md ---\n` + text.slice(0, 1500)
+    // 4. Fetch README content for project overview
+    const readmeFile = allFiles.find((f) => /^readme\.md$/i.test(f.path.split("/").pop() || ""))
+    if (readmeFile) {
+      const readmeText = await fetchRawFile(owner, repo, branch, readmeFile.path, headers)
+      if (readmeText) codeSnippet += `\n--- ${readmeFile.path} ---\n${readmeText.slice(0, 1500)}`
+    }
+
+    // 5. Fetch a handful of key implementation files so the model can assess real code, not just paths
+    const keyFiles = allFiles.filter((f) => KEY_FILE_PATTERNS.some((re) => re.test(f.path))).slice(0, 6)
+    for (const file of keyFiles) {
+      if (codeSnippet.length >= MAX_CODE_SNIPPET_BUDGET) break
+      const content = await fetchRawFile(owner, repo, branch, file.path, headers)
+      if (content) {
+        codeSnippet += `\n--- ${file.path} ---\n${content.slice(0, 1200)}`
       }
     }
 
-    return `Repository File Tree:\n${fileList}${codeSnippet}`
+    return `Repository File Tree (${allFiles.length} files total${truncatedNote}):\n${fileList}${codeSnippet}`
   } catch (err) {
     console.warn("[GitHub Fetch Warning]:", err.message)
     // Throw validation / SSRF errors so caller can handle and reject if necessary
