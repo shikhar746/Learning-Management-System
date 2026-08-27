@@ -176,10 +176,9 @@ const PROVIDER_FETCHERS = {
 
 async function fetchGroq(apiKey, prompt) {
   const modelsToTry = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-70b-versatile",
-    "llama3-70b-8192",
-    "qwen-2.5-coder-32b",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
   ]
 
   let lastError = null
@@ -215,7 +214,7 @@ async function fetchGroq(apiKey, prompt) {
 
 async function fetchQwen(apiKey, prompt) {
   const endpointsToTry = [
-    { url: "https://api.groq.com/openai/v1/chat/completions", model: "qwen-2.5-coder-32b" },
+    { url: "https://api.groq.com/openai/v1/chat/completions", model: "qwen/qwen3.8-27b" },
     { url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", model: "qwen-max" },
     { url: "https://api.together.xyz/v1/chat/completions", model: "Qwen/Qwen2.5-72B-Instruct-Turbo" },
   ]
